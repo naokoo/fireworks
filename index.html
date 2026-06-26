@@ -5,61 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>NIGHT TIDE — 夜光虫 × 波打ち際 × 花火1万発 × 月と星空</title>
 <style>
-  :root{
-    --cyan:#6ef5e8;
-    --gold:#ffd87a;
-    --ink:rgba(5,10,24,0.62);
-    --line:rgba(110,245,232,0.22);
-  }
+  :root{ --cyan:#6ef5e8; --gold:#ffd87a; --ink:rgba(5,10,24,0.62); --line:rgba(110,245,232,0.22); }
   *{ box-sizing:border-box; margin:0; padding:0; }
   html,body{ width:100%; height:100%; overflow:hidden; background:#020510;
     font-family:"Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif; }
   #app{ position:fixed; inset:0; }
   canvas{ display:block; }
 
-  /* ------- HUD ------- */
   #hud{
     position:fixed; top:14px; left:14px; z-index:20; pointer-events:none; user-select:none;
     color:#e6f7ff; font-size:12px; line-height:1.75; min-width:208px;
     padding:14px 16px 12px; border-radius:4px;
-    background:var(--ink); border:1px solid var(--line);
-    border-left:2px solid var(--cyan);
+    background:var(--ink); border:1px solid var(--line); border-left:2px solid var(--cyan);
     backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     box-shadow:0 10px 50px rgba(0,10,40,0.55);
   }
-  #hud .t{
-    font-size:10px; letter-spacing:4px; color:var(--cyan); margin-bottom:8px;
-    text-transform:uppercase; opacity:.9;
-  }
+  #hud .t{ font-size:10px; letter-spacing:4px; color:var(--cyan); margin-bottom:8px; text-transform:uppercase; opacity:.9; }
   #hud .r{ display:flex; justify-content:space-between; gap:16px; }
   #hud .k{ opacity:.62; letter-spacing:1px; }
   #hud .v{ font-weight:700; font-variant-numeric:tabular-nums; }
   #hud .gold{ color:var(--gold); }
   #hud .bar{ height:4px; margin:7px 0 4px; background:rgba(255,255,255,.08); border-radius:2px; overflow:hidden; }
   #hud .bar i{ display:block; height:100%; width:0;
-    background:linear-gradient(90deg,var(--cyan),var(--gold));
-    box-shadow:0 0 12px rgba(110,245,232,.7); transition:width .25s linear; }
-  #hud .finale-now{ color:#ff8c9e; animation:pulse 0.8s infinite; }
+    background:linear-gradient(90deg,var(--cyan),var(--gold)); box-shadow:0 0 12px rgba(110,245,232,.7); transition:width .25s linear; }
+  #hud .finale-now{ color:#ff8c9e; animation:pulse .8s infinite; }
   @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
 
-  #hint{
-    position:fixed; bottom:14px; left:50%; transform:translateX(-50%);
-    z-index:20; pointer-events:none; user-select:none;
-    color:rgba(214,240,255,.5); font-size:11px; letter-spacing:2px;
-    text-shadow:0 1px 6px rgba(0,10,40,.8);
-  }
+  #hint{ position:fixed; bottom:14px; left:50%; transform:translateX(-50%); z-index:20;
+    pointer-events:none; user-select:none; color:rgba(214,240,255,.5); font-size:11px; letter-spacing:2px;
+    text-shadow:0 1px 6px rgba(0,10,40,.8); }
 
-  /* ------- フォールバック / エラー ------- */
-  #overlay{ position:fixed; inset:0; z-index:60; display:none;
-    align-items:center; justify-content:center; text-align:center; padding:24px;
-    background:radial-gradient(ellipse at 50% 40%, #0a1430, #020510); color:#d7ecff; }
-  #overlay .bx{ max-width:540px; padding:30px 34px; border-radius:6px;
+  #overlay{ position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center;
+    text-align:center; padding:24px; background:radial-gradient(ellipse at 50% 40%, #0a1430, #020510); color:#d7ecff; }
+  #overlay .bx{ max-width:560px; padding:30px 34px; border-radius:6px;
     background:rgba(8,16,38,.8); border:1px solid var(--line); border-left:2px solid var(--cyan); }
   #overlay h1{ font-size:17px; letter-spacing:3px; color:var(--cyan); margin-bottom:14px; }
   #overlay p{ font-size:13px; line-height:1.9; opacity:.92; }
 
-  .dg.ac{ z-index:30 !important; }
-  .dg .property-name{ font-size:11px; }
+  /* lil-gui を右上に固定 */
+  .lil-gui.root{ --width:300px; z-index:30; top:12px; right:12px; }
 </style>
 </head>
 <body>
@@ -78,48 +62,45 @@
 
 <div id="overlay"><div class="bx"><h1 id="ovT">ERROR</h1><p id="ovM"></p></div></div>
 
-<!-- CDN：グローバルUMDビルド（importmap不要・ローカルファイルで動作） -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
-
+<!-- CDN 読み込み失敗フォールバック（モジュール起動で解除） -->
 <script>
-"use strict";
+  window.__bootTimer = setTimeout(function(){
+    var o=document.getElementById('overlay');
+    document.getElementById('ovT').textContent='LIBRARY LOAD FAILED';
+    document.getElementById('ovM').innerHTML='Three.js r185 / lil-gui を CDN から読み込めませんでした。<br>インターネット接続を確認のうえ再読み込みしてください。<br>（ES Modules + importmap のため、ローカルでもオンライン環境が必要です）';
+    o.style.display='flex';
+  }, 7000);
+</script>
+
+<!-- Three.js r185 を ES Modules で読み込む（UMDグローバルは r150+ で廃止のため importmap 必須） -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
+    "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.21.0/dist/lil-gui.esm.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import GUI from 'lil-gui';
+
 /* ============================================================================
-   NIGHT TIDE v2 — 夜の海辺・夜光虫・花火1万発・月と星空
-   ----------------------------------------------------------------------------
-   構成クラス：
-     App / SkySystem / MoonSystem / OceanSystem / ShorelineSystem
-     NoctilucaSystem / FireworksSystem / WeatherSystem / ReflectionSystem
-     HUDSystem / GUIController
-   設計方針：
-     - 花火は TypedArray + フリーリストの Particle Pool（毎フレームのGC回避）
-     - 発光系はすべて AdditiveBlending。Bloom はソフトグロー2層スプライトで擬似表現
-     - 海面/泡/夜光虫/雲はシェーダ側で演出し、CPU負荷を最小化
-     - 1万発 = 累積カウント。同時発火数・粒子数は品質設定で自動スケール
+   NIGHT TIDE v3 (three.js r185 / ESM)
+   主な変更：
+     - r185 移行（ESM + importmap、UMDグローバル/updateRange など廃止APIを排除）
+     - 花火の粒を「火の玉」化（白熱コア + グロー）。GUIで粒サイズ可変
+     - 燃える火薬の表現：寿命に沿う黒体冷却(白→橙→赤) + 高周波フリッカー
+     - カメラを上向きに調整し、海は画面下 約1/4 に圧縮（空と花火を主役に）
    ============================================================================ */
 
-/* ---------- 起動前チェック ---------- */
-function fatal(t, m){
+function fatal(t,m){
   const o=document.getElementById('overlay');
   document.getElementById('ovT').textContent=t;
   document.getElementById('ovM').innerHTML=m;
   o.style.display='flex';
 }
-if (typeof THREE === 'undefined'){
-  fatal('LIBRARY LOAD FAILED',
-    'Three.js を CDN から読み込めませんでした。<br>ネットワーク接続を確認して再読み込みしてください。');
-  throw new Error('THREE missing');
-}
-(function(){
-  try{
-    const c=document.createElement('canvas');
-    if (!(window.WebGLRenderingContext && (c.getContext('webgl')||c.getContext('experimental-webgl')))){
-      fatal('WEBGL UNAVAILABLE',
-        'お使いの環境では WebGL を利用できません。<br>最新の Chrome / Edge / Safari でお試しください。');
-      throw new Error('no webgl');
-    }
-  }catch(e){ throw e; }
-})();
 
 /* ---------- ユーティリティ ---------- */
 const TAU=Math.PI*2;
@@ -129,39 +110,41 @@ const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
 const lerp=(a,b,t)=>a+(b-a)*t;
 const pick=a=>a[(Math.random()*a.length)|0];
 function hsv(h,s,v){
-  h=(h%1+1)%1;
-  const i=(h*6)|0, f=h*6-i, p=v*(1-s), q=v*(1-f*s), t=v*(1-(1-f)*s);
+  h=(h%1+1)%1; const i=(h*6)|0,f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);
   switch(i%6){case 0:return[v,t,p];case 1:return[q,v,p];case 2:return[p,v,t];
               case 3:return[p,q,v];case 4:return[t,p,v];default:return[v,p,q];}
 }
+/* 黒体っぽい冷却ランプ：lr=1(高温・白黄) → 0(低温・暗赤) */
+function ember(lr,out){
+  let r,g,b;
+  if(lr>0.62){ const t=(lr-0.62)/0.38; r=1; g=lerp(.66,.96,t); b=lerp(.28,.72,t); }
+  else if(lr>0.32){ const t=(lr-0.32)/0.30; r=lerp(.96,1,t); g=lerp(.34,.66,t); b=lerp(.07,.28,t); }
+  else { const t=lr/0.32; r=lerp(.42,.96,t); g=lerp(.06,.34,t); b=lerp(.02,.07,t); }
+  out[0]=r; out[1]=g; out[2]=b;
+}
 
-/* GLSL：2D値ノイズ + fbm（軽量・全シェーダ共通） */
-const G_NOISE = `
+/* GLSL：値ノイズ + fbm（全シェーダ共通） */
+const G_NOISE=`
 float hash21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
-float vnoise(vec2 p){
-  vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
-  float a=hash21(i), b=hash21(i+vec2(1,0)), c=hash21(i+vec2(0,1)), d=hash21(i+vec2(1,1));
-  return mix(mix(a,b,f.x), mix(c,d,f.x), f.y);
-}
-float fbm(vec2 p){
-  float v=0.0, a=0.5;
-  for(int k=0;k<4;k++){ v+=a*vnoise(p); p*=2.03; a*=0.5; }
-  return v;
-}
+float vnoise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f);
+  float a=hash21(i),b=hash21(i+vec2(1,0)),c=hash21(i+vec2(0,1)),d=hash21(i+vec2(1,1));
+  return mix(mix(a,b,f.x),mix(c,d,f.x),f.y); }
+float fbm(vec2 p){ float v=0.,a=.5; for(int k=0;k<4;k++){ v+=a*vnoise(p); p*=2.03; a*=.5;} return v; }
 `;
 
 /* ============================================================================
-   グローバル状態（GUI が直接編集する）
+   状態（GUI が直接編集）
    ============================================================================ */
-const P = {
+const P={
   weather:'Clear',
-  moonPhase:'Full', moonHeight:0.72, moonAzimuth:0.18, moonBrightness:1.0,
+  moonPhase:'Full', moonHeight:0.74, moonAzimuth:0.18, moonBrightness:1.0,
   starDensity:1.0,
   waveStrength:1.0, waveSpeed:1.0,
   noctDensity:1.0, noctBrightness:1.0, noctTrail:true,
-  program:'隅田川風', fwIntensity:1.0, fwSize:1.0, fwHeight:1.0,
+  program:'長岡風', fwIntensity:1.0, fwSize:1.0, fwHeight:1.0, fwParticle:1.3,
+  trail:true, trailPersist:0.92,   // ★線が残る（長秒露光風）/ 軌跡の長さ
   windDirection:0.15, windStrength:0.4,
-  bloom:1.0,
+  bloom:1.1,
   autoFinale:true, paused:false,
   quality:'Auto'
 };
@@ -169,8 +152,7 @@ const P = {
 const WEATHERS=['Clear','Light Clouds','Heavy Clouds','Misty','Windy','Rain','After Rain','Hot Humid Night','Typhoon Afterglow'];
 const PROGRAMS_LIST=['長岡風','大曲風','隅田川風','土浦風','片貝風','諏訪湖風','カラフル連発','フィナーレ連発'];
 
-/* 気象プリセット：sky上端/下端色, 雲量/速度, 霧, 星, 月減光, 雨, 波/風係数, 夜光虫, 煙の流れ */
-const WX = {
+const WX={
   'Clear':            {top:[.012,.03,.10], hor:[.05,.09,.24], cloud:.04, cspd:.35, fog:.05, star:1.0,  moon:1.0, rain:0,   wave:.9,  wind:.5,  noct:1.0, smoke:.5},
   'Light Clouds':     {top:[.02,.04,.11],  hor:[.07,.10,.25], cloud:.30, cspd:.55, fog:.09, star:.65,  moon:.88, rain:0,   wave:1.0, wind:.6,  noct:1.0, smoke:.6},
   'Heavy Clouds':     {top:[.03,.045,.09], hor:[.08,.09,.18], cloud:.78, cspd:.7,  fog:.17, star:.22,  moon:.5,  rain:0,   wave:1.1, wind:.7,  noct:.9,  smoke:.7},
@@ -181,9 +163,7 @@ const WX = {
   'Hot Humid Night':  {top:[.04,.05,.12],  hor:[.12,.11,.22], cloud:.24, cspd:.4,  fog:.36, star:.55,  moon:.82, rain:0,   wave:.8,  wind:.5,  noct:1.55,smoke:.4},
   'Typhoon Afterglow':{top:[.025,.04,.10], hor:[.07,.09,.20], cloud:.68, cspd:2.8, fog:.15, star:.45,  moon:.66, rain:.18, wave:2.1, wind:2.1, noct:1.3, smoke:2.2}
 };
-
-/* 花火プログラム：使用タイプの重み / 打ち上げレート / 玉サイズ / 左右散らばり */
-const PRG = {
+const PRG={
   '長岡風':        {types:['willow','nishiki','peony','large','silver'],    rate:1.0, big:1.65, spread:1.25},
   '大曲風':        {types:['chrys','peony','saturn','large','senrin'],      rate:1.1, big:1.30, spread:0.80},
   '隅田川風':      {types:['peony','chrys','colorful','heart','smile'],     rate:1.45,big:1.00, spread:1.45},
@@ -195,14 +175,12 @@ const PRG = {
 };
 
 /* ============================================================================
-   App — 全体統括
+   App
    ============================================================================ */
 class App{
   constructor(){
-    this.clock=new THREE.Clock();
-    this.fps=60;
-    this.finaleIn=55; this.finale=false; this.finaleLeft=0;
-
+    this.timer=new THREE.Timer();   // r185でClockは非推奨のためTimerを使用
+    this.fps=60; this.finaleIn=55; this.finale=false; this.finaleLeft=0;
     this.isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)||Math.min(innerWidth,innerHeight)<560;
     this.resolveQuality();
 
@@ -213,71 +191,77 @@ class App{
     document.getElementById('app').appendChild(this.renderer.domElement);
 
     this.scene=new THREE.Scene();
-    this.camera=new THREE.PerspectiveCamera(58, innerWidth/innerHeight, 0.5, 7000);
-    this.camera.position.set(0,10,100);
-    this.camera.lookAt(0,40,-400);
+    this.fwScene=new THREE.Scene();   // ★花火だけ別シーン（トレイル蓄積バッファ用）
+    this.camera=new THREE.PerspectiveCamera(58, innerWidth/innerHeight, 0.5, 8000);
+    /* ★海を画面下1/4に。光跡(長秒露光風)を崩さないため三脚固定＝カメラは静止 */
+    this.lookAtY=255; this.lookAtZ=-380;   // ★海:空≒5:95（水平線を画面下〜94%へ）
+    this.camera.position.set(0,12,120);
+    this.camera.lookAt(0,this.lookAtY,this.lookAtZ);
 
-    /* システム構築（依存順） */
-    this.sky      =new SkySystem(this);
-    this.moon     =new MoonSystem(this);
-    this.ocean    =new OceanSystem(this);
-    this.shore    =new ShorelineSystem(this);
-    this.noct     =new NoctilucaSystem(this);
-    this.weather  =new WeatherSystem(this);
-    this.reflect  =new ReflectionSystem(this);
-    this.fw       =new FireworksSystem(this);
-    this.hud      =new HUDSystem(this);
-    this.gui      =new GUIController(this);
+    this.sky=new SkySystem(this);
+    this.moon=new MoonSystem(this);
+    this.ocean=new OceanSystem(this);
+    this.shore=new ShorelineSystem(this);
+    this.noct=new NoctilucaSystem(this);
+    this.weather=new WeatherSystem(this);
+    this.reflect=new ReflectionSystem(this);
+    this.fw=new FireworksSystem(this);
+    this.hud=new HUDSystem(this);
+    this.gui=new GUIController(this);
+    this.initTrails();
 
     addEventListener('resize',()=>this.onResize());
     this.renderer.domElement.addEventListener('pointerdown',e=>{
-      const nx=(e.clientX/innerWidth)*2-1;
-      this.fw.manual(nx);
+      this.fw.manual((e.clientX/innerWidth)*2-1);
     });
 
     this.loop=this.loop.bind(this);
     requestAnimationFrame(this.loop);
   }
-
   resolveQuality(){
-    let q=P.quality;
-    if(q==='Auto') q=this.isMobile?'Low':'High';
-    this.q=q;
+    let q=P.quality; if(q==='Auto') q=this.isMobile?'Low':'High'; this.q=q;
     if(q==='High'){ this.poolN=10000; this.shellMax=30; this.seaSeg=190; this.starN=2800; this.noctN=3400; this.pScale=1.0; }
     else if(q==='Mid'){ this.poolN=5600; this.shellMax=18; this.seaSeg=130; this.starN=1800; this.noctN=2000; this.pScale=0.6; }
     else { this.poolN=2800; this.shellMax=10; this.seaSeg=84; this.starN=1100; this.noctN=1100; this.pScale=0.34; }
   }
 
-  onResize(){
-    this.camera.aspect=innerWidth/innerHeight;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
-    this.renderer.setSize(innerWidth,innerHeight);
+  /* ★長秒露光風トレイル：花火レイヤーをping-pongで減衰加算し、線として残す */
+  initTrails(){
+    const dr=this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    const opt={ depthBuffer:false, stencilBuffer:false, magFilter:THREE.LinearFilter, minFilter:THREE.LinearFilter };
+    this.rtA=new THREE.WebGLRenderTarget(dr.x,dr.y,opt);
+    this.rtB=new THREE.WebGLRenderTarget(dr.x,dr.y,opt);
+    this.orthoCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+    const quadVS=`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.);} `;
+    // 減衰パス：前トレイル×decay（微小値は切り捨てて残像を完全に消す）
+    this.fadeMat=new THREE.ShaderMaterial({ depthTest:false, depthWrite:false,
+      uniforms:{ tDiffuse:{value:null}, uDecay:{value:0.92} }, vertexShader:quadVS,
+      fragmentShader:`varying vec2 vUv; uniform sampler2D tDiffuse; uniform float uDecay;
+        void main(){ vec3 c=texture2D(tDiffuse,vUv).rgb*uDecay; c=max(c-0.004,0.0); gl_FragColor=vec4(c,1.0);} ` });
+    this.fadeScene=new THREE.Scene(); this.fadeScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),this.fadeMat));
+    // 合成パス：トレイルを画面へ加算
+    this.compMat=new THREE.ShaderMaterial({ transparent:true, blending:THREE.AdditiveBlending, depthTest:false, depthWrite:false,
+      uniforms:{ tDiffuse:{value:null} }, vertexShader:quadVS,
+      fragmentShader:`varying vec2 vUv; uniform sampler2D tDiffuse; void main(){ gl_FragColor=vec4(texture2D(tDiffuse,vUv).rgb,1.0);} ` });
+    this.compScene=new THREE.Scene(); this.compScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),this.compMat));
   }
 
+  onResize(){
+    this.camera.aspect=innerWidth/innerHeight; this.camera.updateProjectionMatrix();
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+    this.renderer.setSize(innerWidth,innerHeight);
+    const dr=this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    if(this.rtA){ this.rtA.setSize(dr.x,dr.y); this.rtB.setSize(dr.x,dr.y); }
+  }
   startFinale(){ this.finale=true; this.finaleLeft=10; }
-
   loop(){
     requestAnimationFrame(this.loop);
-    let dt=Math.min(this.clock.getDelta(),0.05);
-    const t=this.clock.elapsedTime;
-    this.fps=lerp(this.fps, dt>0?1/dt:60, 0.08);
-
+    this.timer.update();                              // 経過時間とdeltaを更新
+    let dt=Math.min(this.timer.getDelta(),0.05); const t=this.timer.getElapsed();
+    this.fps=lerp(this.fps, dt>0?1/dt:60, .08);
     if(!P.paused){
-      /* カメラ：潮風に揺れる微小モーション */
-      this.camera.position.x=Math.sin(t*0.045)*7;
-      this.camera.position.y=10+Math.sin(t*0.11)*1.4;
-      this.camera.lookAt(Math.sin(t*0.045)*2.5, 34, -400);
-
-      /* 自動フィナーレ */
-      if(P.autoFinale && !this.finale){
-        this.finaleIn-=dt;
-        if(this.finaleIn<=0) this.startFinale();
-      }
-      if(this.finale){
-        this.finaleLeft-=dt;
-        if(this.finaleLeft<=0){ this.finale=false; this.finaleIn=rand(50,80); }
-      }
+      if(P.autoFinale && !this.finale){ this.finaleIn-=dt; if(this.finaleIn<=0) this.startFinale(); }
+      if(this.finale){ this.finaleLeft-=dt; if(this.finaleLeft<=0){ this.finale=false; this.finaleIn=rand(50,80); } }
 
       this.weather.update(dt,t);
       this.sky.update(dt,t);
@@ -289,58 +273,63 @@ class App{
       this.ocean.update(dt,t);
     }
     this.hud.update();
-    this.renderer.render(this.scene,this.camera);
+    this.renderFrame();
+  }
+
+  /* 描画：本シーン → 花火トレイル蓄積 → 加算合成 */
+  renderFrame(){
+    const r=this.renderer;
+    r.autoClear=false;
+    // 1) 本シーン（花火以外）を画面へ
+    r.setRenderTarget(null); r.clear(); r.render(this.scene,this.camera);
+    if(P.trail){
+      // 2) 前トレイルを減衰させて rtB を満たす
+      r.setRenderTarget(this.rtB); r.clear();
+      this.fadeMat.uniforms.tDiffuse.value=this.rtA.texture;
+      this.fadeMat.uniforms.uDecay.value=P.trailPersist;
+      r.render(this.fadeScene,this.orthoCam);
+      // 3) 花火を rtB へ加算（クリアしない＝軌跡が線として蓄積）
+      r.render(this.fwScene,this.camera);
+      // 4) rtB を画面へ加算合成（クリアしない＝本シーンを保持）
+      this.compMat.uniforms.tDiffuse.value=this.rtB.texture;
+      r.setRenderTarget(null); r.render(this.compScene,this.orthoCam);
+      const t=this.rtA; this.rtA=this.rtB; this.rtB=t;   // ping-pong入れ替え
+    }else{
+      // トレイル無効：花火を直接重ねる
+      r.setRenderTarget(null); r.render(this.fwScene,this.camera);
+    }
   }
 }
 
 /* ============================================================================
-   SkySystem — 天球グラデ / 星 / 星座線 / 流れ星
+   SkySystem
    ============================================================================ */
 class SkySystem{
   constructor(app){
     this.app=app;
-    /* 天球ドーム */
-    this.u={ uTop:{value:new THREE.Color()}, uHor:{value:new THREE.Color()},
-             uHaze:{value:.1}, uTime:{value:0} };
-    const dome=new THREE.Mesh(
-      new THREE.SphereGeometry(3200,28,20),
-      new THREE.ShaderMaterial({
-        side:THREE.BackSide, depthWrite:false,
-        uniforms:this.u,
-        vertexShader:`varying vec3 vD; void main(){ vD=normalize(position);
-          gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
-        fragmentShader:`
-          ${G_NOISE}
-          varying vec3 vD; uniform vec3 uTop,uHor; uniform float uHaze,uTime;
-          void main(){
-            float h=clamp(vD.y*.5+.5,0.,1.);
-            vec3 c=mix(uHor,uTop,pow(h,.65));
-            /* 地平線の薄霞（ノイズで斑） */
-            float band=smoothstep(.56,.42,h);
-            float n=fbm(vD.xz*4.0+uTime*0.01);
-            c+=vec3(.10,.12,.20)*band*uHaze*(2.2+n);
-            gl_FragColor=vec4(c,1.);
-          }`
-      })
-    );
+    this.u={ uTop:{value:new THREE.Color()}, uHor:{value:new THREE.Color()}, uHaze:{value:.1}, uTime:{value:0} };
+    const dome=new THREE.Mesh(new THREE.SphereGeometry(3400,28,20), new THREE.ShaderMaterial({
+      side:THREE.BackSide, depthWrite:false, uniforms:this.u,
+      vertexShader:`varying vec3 vD; void main(){ vD=normalize(position);
+        gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);} `,
+      fragmentShader:`${G_NOISE}
+        varying vec3 vD; uniform vec3 uTop,uHor; uniform float uHaze,uTime;
+        void main(){ float h=clamp(vD.y*.5+.5,0.,1.);
+          vec3 c=mix(uHor,uTop,pow(h,.65));
+          float band=smoothstep(.56,.42,h); float n=fbm(vD.xz*4.+uTime*.01);
+          c+=vec3(.10,.12,.20)*band*uHaze*(2.2+n);
+          gl_FragColor=vec4(c,1.);}`
+    }));
     app.scene.add(dome);
-
-    this.buildStars();
-    this.buildConstellations();
+    this.buildStars(); this.buildConstellations();
     this.meteors=[]; this.meteorT=rand(2,5);
   }
-
   buildStars(){
     const N=this.app.starN;
-    const pos=new Float32Array(N*3), ph=new Float32Array(N), br=new Float32Array(N), hue=new Float32Array(N);
-    for(let i=0;i<N;i++){
-      const th=Math.random()*TAU, phi=Math.acos(1-Math.random()*0.62), r=2700;
-      pos[i*3]=r*Math.sin(phi)*Math.cos(th);
-      pos[i*3+1]=r*Math.cos(phi)*0.92+50;
-      pos[i*3+2]=r*Math.sin(phi)*Math.sin(th);
-      ph[i]=Math.random()*TAU; br[i]=Math.pow(Math.random(),1.6)*0.9+0.15;
-      hue[i]=Math.random();   // わずかな青/橙の色味差
-    }
+    const pos=new Float32Array(N*3),ph=new Float32Array(N),br=new Float32Array(N),hue=new Float32Array(N);
+    for(let i=0;i<N;i++){ const th=Math.random()*TAU,phi=Math.acos(1-Math.random()*.62),r=2900;
+      pos[i*3]=r*Math.sin(phi)*Math.cos(th); pos[i*3+1]=r*Math.cos(phi)*.92+50; pos[i*3+2]=r*Math.sin(phi)*Math.sin(th);
+      ph[i]=Math.random()*TAU; br[i]=Math.pow(Math.random(),1.6)*.9+.15; hue[i]=Math.random(); }
     const g=new THREE.BufferGeometry();
     g.setAttribute('position',new THREE.BufferAttribute(pos,3));
     g.setAttribute('aP',new THREE.BufferAttribute(ph,1));
@@ -348,380 +337,217 @@ class SkySystem{
     g.setAttribute('aH',new THREE.BufferAttribute(hue,1));
     this.su={ uTime:{value:0}, uDen:{value:1}, uPix:{value:Math.min(devicePixelRatio||1,2)} };
     this.stars=new THREE.Points(g,new THREE.ShaderMaterial({
-      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
-      uniforms:this.su,
-      vertexShader:`
-        attribute float aP,aB,aH; uniform float uTime,uDen,uPix;
-        varying float vA; varying vec3 vC;
-        void main(){
-          float tw=.55+.45*sin(uTime*1.8+aP);
-          vA=aB*tw*uDen;
-          /* 星色：青白〜暖色をわずかに混ぜる */
+      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, uniforms:this.su,
+      vertexShader:`attribute float aP,aB,aH; uniform float uTime,uDen,uPix; varying float vA; varying vec3 vC;
+        void main(){ float tw=.55+.45*sin(uTime*1.8+aP); vA=aB*tw*uDen;
           vC=mix(vec3(.75,.85,1.),vec3(1.,.92,.78),step(.8,aH));
-          vec4 mv=modelViewMatrix*vec4(position,1.);
-          gl_Position=projectionMatrix*mv;
-          gl_PointSize=(aB*2.8+.7)*uPix;
-        }`,
-      fragmentShader:`
-        varying float vA; varying vec3 vC;
-        void main(){
-          float a=smoothstep(.5,.0,length(gl_PointCoord-.5));
-          gl_FragColor=vec4(vC,a*vA);
-        }`
+          vec4 mv=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv;
+          gl_PointSize=(aB*2.8+.7)*uPix; }`,
+      fragmentShader:`varying float vA; varying vec3 vC;
+        void main(){ float a=smoothstep(.5,.0,length(gl_PointCoord-.5)); gl_FragColor=vec4(vC,a*vA);} `
     }));
     this.app.scene.add(this.stars);
   }
-
   buildConstellations(){
-    /* 星座風：頂点列を線で結び、頂点位置に明るい星を置く */
-    const lines=[], dots=[];
-    for(let g=0;g<6;g++){
-      const th=rand(0,TAU); let x=Math.cos(th)*2500, z=Math.sin(th)*2500, y=rand(900,1800);
+    const lines=[],dots=[];
+    for(let g=0;g<6;g++){ const th=rand(0,TAU); let x=Math.cos(th)*2700,z=Math.sin(th)*2700,y=rand(1000,1900);
       const n=randi(4,6);
-      for(let k=0;k<n;k++){
-        const nx=x+rand(-280,280), ny=y+rand(-160,220), nz=z+rand(-280,280);
-        lines.push(x,y,z,nx,ny,nz); dots.push(nx,ny,nz);
-        x=nx;y=ny;z=nz;
-      }
-    }
-    const lg=new THREE.BufferGeometry();
-    lg.setAttribute('position',new THREE.Float32BufferAttribute(lines,3));
-    this.cons=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({
-      color:0x7d97ff, transparent:true, opacity:.16, blending:THREE.AdditiveBlending, depthWrite:false}));
+      for(let k=0;k<n;k++){ const nx=x+rand(-300,300),ny=y+rand(-170,230),nz=z+rand(-300,300);
+        lines.push(x,y,z,nx,ny,nz); dots.push(nx,ny,nz); x=nx;y=ny;z=nz; } }
+    const lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.Float32BufferAttribute(lines,3));
+    this.cons=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({color:0x7d97ff,transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false}));
     this.app.scene.add(this.cons);
-    const dg=new THREE.BufferGeometry();
-    dg.setAttribute('position',new THREE.Float32BufferAttribute(dots,3));
-    this.consDots=new THREE.Points(dg,new THREE.PointsMaterial({
-      color:0xbcd0ff, size:5, transparent:true, opacity:.7, sizeAttenuation:false,
-      blending:THREE.AdditiveBlending, depthWrite:false}));
+    const dg=new THREE.BufferGeometry(); dg.setAttribute('position',new THREE.Float32BufferAttribute(dots,3));
+    this.consDots=new THREE.Points(dg,new THREE.PointsMaterial({color:0xbcd0ff,size:5,transparent:true,opacity:.7,sizeAttenuation:false,blending:THREE.AdditiveBlending,depthWrite:false}));
     this.app.scene.add(this.consDots);
   }
-
   spawnMeteor(){
-    const g=new THREE.BufferGeometry();
-    g.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(6),3));
-    const m=new THREE.Line(g,new THREE.LineBasicMaterial({
-      color:0xd8eaff, transparent:true, opacity:.95, blending:THREE.AdditiveBlending, depthWrite:false}));
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(6),3));
+    const m=new THREE.Line(g,new THREE.LineBasicMaterial({color:0xd8eaff,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));
     this.app.scene.add(m);
-    this.meteors.push({m,
-      p:new THREE.Vector3(rand(-1600,1600),rand(950,1800),rand(-2000,-500)),
+    this.meteors.push({m, p:new THREE.Vector3(rand(-1600,1600),rand(1000,1900),rand(-2200,-500)),
       d:new THREE.Vector3(rand(-1,1),rand(-.55,-.15),rand(-.3,.3)).normalize(),
-      len:rand(140,300), life:0, max:rand(.5,1.0), spd:rand(1600,2800)});
+      len:rand(150,320), life:0, max:rand(.5,1), spd:rand(1700,2900)});
   }
-
   update(dt,t){
     const w=WX[P.weather];
-    this.su.uTime.value=t;
-    this.su.uDen.value=w.star*P.starDensity;
-    this.cons.material.opacity=.16*w.star*P.starDensity;
-    this.consDots.material.opacity=.7*w.star*P.starDensity;
+    this.su.uTime.value=t; this.su.uDen.value=w.star*P.starDensity;
+    this.cons.material.opacity=.16*w.star*P.starDensity; this.consDots.material.opacity=.7*w.star*P.starDensity;
     this.u.uTime.value=t;
-    /* 空色は気象プリセットへ滑らかに遷移 */
     this.u.uTop.value.lerp(new THREE.Color(w.top[0],w.top[1],w.top[2]),.04);
     this.u.uHor.value.lerp(new THREE.Color(w.hor[0],w.hor[1],w.hor[2]),.04);
-    this.u.uHaze.value=lerp(this.u.uHaze.value,w.fog+ (P.weather==='Hot Humid Night'?.1:0),.04);
-
-    /* 流れ星 */
+    this.u.uHaze.value=lerp(this.u.uHaze.value,w.fog+(P.weather==='Hot Humid Night'?.1:0),.04);
     this.meteorT-=dt;
-    if(this.meteorT<=0 && w.star>0.3){ this.spawnMeteor(); this.meteorT=rand(2.5,7)/clamp(w.star,.3,1.2); }
-    for(let i=this.meteors.length-1;i>=0;i--){
-      const s=this.meteors[i]; s.life+=dt;
-      s.p.addScaledVector(s.d,s.spd*dt);
-      const tail=s.p.clone().addScaledVector(s.d,-s.len);
-      const a=s.m.geometry.attributes.position.array;
-      a[0]=s.p.x;a[1]=s.p.y;a[2]=s.p.z; a[3]=tail.x;a[4]=tail.y;a[5]=tail.z;
-      s.m.geometry.attributes.position.needsUpdate=true;
-      s.m.material.opacity=.95*(1-s.life/s.max);
-      if(s.life>=s.max){
-        this.app.scene.remove(s.m); s.m.geometry.dispose(); s.m.material.dispose();
-        this.meteors.splice(i,1);
-      }
-    }
+    if(this.meteorT<=0 && w.star>.3){ this.spawnMeteor(); this.meteorT=rand(2.5,7)/clamp(w.star,.3,1.2); }
+    for(let i=this.meteors.length-1;i>=0;i--){ const s=this.meteors[i]; s.life+=dt;
+      s.p.addScaledVector(s.d,s.spd*dt); const tl=s.p.clone().addScaledVector(s.d,-s.len);
+      const a=s.m.geometry.attributes.position.array; a[0]=s.p.x;a[1]=s.p.y;a[2]=s.p.z;a[3]=tl.x;a[4]=tl.y;a[5]=tl.z;
+      s.m.geometry.attributes.position.needsUpdate=true; s.m.material.opacity=.95*(1-s.life/s.max);
+      if(s.life>=s.max){ this.app.scene.remove(s.m); s.m.geometry.dispose(); s.m.material.dispose(); this.meteors.splice(i,1);} }
   }
 }
 
 /* ============================================================================
-   MoonSystem — 月（満ち欠け・クレーター）+ 2層ハロー（擬似Bloom）
+   MoonSystem
    ============================================================================ */
 class MoonSystem{
   constructor(app){
-    this.app=app;
-    this.dir=new THREE.Vector3(0,1,-1).normalize();
-    this.screenX=0;
-
+    this.app=app; this.dir=new THREE.Vector3(0,1,-1).normalize(); this.screenX=0;
     this.mu={ uPhase:{value:1}, uBr:{value:1} };
     this.disc=new THREE.Mesh(new THREE.PlaneGeometry(1,1), new THREE.ShaderMaterial({
-      transparent:true, depthWrite:false,
-      uniforms:this.mu,
-      vertexShader:`varying vec2 vUv; void main(){vUv=uv;
-        gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`
-        ${G_NOISE}
+      transparent:true, depthWrite:false, uniforms:this.mu,
+      vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader:`${G_NOISE}
         varying vec2 vUv; uniform float uPhase,uBr;
-        void main(){
-          vec2 p=vUv*2.-1.; float r=length(p);
-          if(r>1.) discard;
-          /* クレーター：fbm の暗斑 + 大きめの円形窪み */
-          float n=fbm(p*4.0)*.5+fbm(p*9.0+3.7)*.3;
-          float crater=0.;
-          crater+=smoothstep(.16,.04,length(p-vec2(.32,.18)))*.25;
-          crater+=smoothstep(.12,.03,length(p-vec2(-.25,-.3)))*.2;
-          crater+=smoothstep(.1,.02,length(p-vec2(-.1,.42)))*.15;
-          float surf=.82+n*.2-crater;
-          /* 満ち欠け：球面照明近似（uPhase: 1=満月, .5=半月, .15=三日月） */
-          float term=(p.x*.5+.5)-(1.-uPhase);
-          float shade=mix(.05,1.,smoothstep(-.06,.22,term));
+        void main(){ vec2 p=vUv*2.-1.; float r=length(p); if(r>1.) discard;
+          float n=fbm(p*4.)*.5+fbm(p*9.+3.7)*.3;
+          float cr=0.; cr+=smoothstep(.16,.04,length(p-vec2(.32,.18)))*.25;
+          cr+=smoothstep(.12,.03,length(p-vec2(-.25,-.3)))*.2; cr+=smoothstep(.1,.02,length(p-vec2(-.1,.42)))*.15;
+          float surf=.82+n*.2-cr;
+          float term=(p.x*.5+.5)-(1.-uPhase); float shade=mix(.05,1.,smoothstep(-.06,.22,term));
           float edge=smoothstep(1.,.93,r);
-          gl_FragColor=vec4(vec3(1.,.96,.84)*surf*shade, edge*uBr);
-        }`
+          gl_FragColor=vec4(vec3(1.,.96,.84)*surf*shade, edge*uBr);}`
     }));
     app.scene.add(this.disc);
-
-    /* ハロー2層：内側シャープ + 外側ワイドで Bloom 風の滲み */
-    const haloMat=(power,alpha)=>new THREE.ShaderMaterial({
-      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
-      uniforms:{uBr:this.mu.uBr,uA:{value:alpha},uPw:{value:power}},
-      vertexShader:`varying vec2 vUv; void main(){vUv=uv;
-        gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    const halo=(pw,al)=>new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+      uniforms:{uBr:this.mu.uBr,uA:{value:al},uPw:{value:pw}},
+      vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
       fragmentShader:`varying vec2 vUv; uniform float uBr,uA,uPw;
-        void main(){
-          float r=length(vUv*2.-1.);
-          float a=pow(smoothstep(1.,0.,r),uPw);
-          gl_FragColor=vec4(vec3(.72,.8,1.),a*uA*uBr);
-        }`
-    });
-    this.halo1=new THREE.Mesh(new THREE.PlaneGeometry(1,1),haloMat(3.2,.5));
-    this.halo2=new THREE.Mesh(new THREE.PlaneGeometry(1,1),haloMat(1.6,.16));
-    app.scene.add(this.halo1,this.halo2);
+        void main(){ float r=length(vUv*2.-1.); float a=pow(smoothstep(1.,0.,r),uPw);
+          gl_FragColor=vec4(vec3(.72,.8,1.),a*uA*uBr);}`
+    }));
+    this.halo1=halo(3.2,.5); this.halo2=halo(1.6,.16); app.scene.add(this.halo1,this.halo2);
   }
-
   update(t){
-    const phase={Full:1,Half:.5,Crescent:.16}[P.moonPhase]??1;
-    this.mu.uPhase.value=phase;
+    const phase={Full:1,Half:.5,Crescent:.16}[P.moonPhase]??1; this.mu.uPhase.value=phase;
     this.mu.uBr.value=P.moonBrightness*WX[P.weather].moon;
-
-    const elev=lerp(.06,1.42,P.moonHeight), az=P.moonAzimuth*1.15;
-    const cy=Math.sin(elev), cxz=Math.cos(elev);
+    const elev=lerp(.06,1.42,P.moonHeight), az=P.moonAzimuth*1.15, cy=Math.sin(elev), cxz=Math.cos(elev);
     this.dir.set(Math.sin(az)*cxz,cy,-Math.cos(az)*cxz).normalize();
-    const pos=this.app.camera.position.clone().addScaledVector(this.dir,2300);
-    const sz=210;
+    const pos=this.app.camera.position.clone().addScaledVector(this.dir,2400); const sz=210;
     this.disc.position.copy(pos); this.disc.scale.set(sz,sz,1); this.disc.lookAt(this.app.camera.position);
     this.halo1.position.copy(pos); this.halo1.scale.set(sz*2.4,sz*2.4,1); this.halo1.lookAt(this.app.camera.position);
     this.halo2.position.copy(pos); this.halo2.scale.set(sz*5.4,sz*5.4,1); this.halo2.lookAt(this.app.camera.position);
-
     this.screenX=clamp(Math.sin(az),-1,1);
   }
 }
 
 /* ============================================================================
-   OceanSystem — 海面：波 / 月光柱 / 花火反射 / 遠近の明暗
+   OceanSystem
    ============================================================================ */
-const RMAX=10;     // 海面に映す花火光の最大数
+const RMAX=10;
 class OceanSystem{
   constructor(app){
     this.app=app;
-    const g=new THREE.PlaneGeometry(7000,4600,app.seaSeg,app.seaSeg);
-    g.rotateX(-Math.PI/2);
-    const rp=[],rc=[];
-    for(let i=0;i<RMAX;i++){rp.push(new THREE.Vector3());rc.push(new THREE.Color());}
-    this.u={
-      uTime:{value:0}, uStr:{value:1}, uSpd:{value:1}, uWind:{value:0},
-      uMoonX:{value:0}, uMoonBr:{value:1},
-      uN:{value:0}, uRP:{value:rp}, uRC:{value:rc},
-      uFog:{value:.1}, uBloom:{value:1}
-    };
+    const g=new THREE.PlaneGeometry(8000,5200,app.seaSeg,app.seaSeg); g.rotateX(-Math.PI/2);
+    const rp=[],rc=[]; for(let i=0;i<RMAX;i++){rp.push(new THREE.Vector3());rc.push(new THREE.Color());}
+    this.u={ uTime:{value:0}, uStr:{value:1}, uSpd:{value:1}, uWind:{value:0},
+      uMoonX:{value:0}, uMoonBr:{value:1}, uN:{value:0}, uRP:{value:rp}, uRC:{value:rc}, uFog:{value:.1}, uBloom:{value:1} };
     this.mesh=new THREE.Mesh(g,new THREE.ShaderMaterial({
       uniforms:this.u,
-      vertexShader:`
-        ${G_NOISE}
-        uniform float uTime,uStr,uSpd,uWind;
-        varying vec3 vW; varying float vH;
-        void main(){
-          vec3 p=position;
-          float tt=uTime*uSpd;
-          float w=0.;
-          w+=sin(p.x*.009+tt*1.25)*2.4;
-          w+=sin(p.z*.012-tt*.95+uWind)*2.0;
-          w+=(fbm(vec2(p.x*.004+tt*.06,p.z*.004))-.5)*9.0;
-          w*=uStr;
-          p.y+=w; vH=w;
-          vec4 wp=modelMatrix*vec4(p,1.);
-          vW=wp.xyz;
-          gl_Position=projectionMatrix*viewMatrix*wp;
-        }`,
-      fragmentShader:`
-        ${G_NOISE}
-        precision highp float;
-        varying vec3 vW; varying float vH;
+      vertexShader:`${G_NOISE}
+        uniform float uTime,uStr,uSpd,uWind; varying vec3 vW; varying float vH;
+        void main(){ vec3 p=position; float tt=uTime*uSpd; float w=0.;
+          w+=sin(p.x*.009+tt*1.25)*2.4; w+=sin(p.z*.012-tt*.95+uWind)*2.0;
+          w+=(fbm(vec2(p.x*.004+tt*.06,p.z*.004))-.5)*9.; w*=uStr; p.y+=w; vH=w;
+          vec4 wp=modelMatrix*vec4(p,1.); vW=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp; }`,
+      fragmentShader:`${G_NOISE}
+        precision highp float; varying vec3 vW; varying float vH;
         uniform float uTime,uMoonX,uMoonBr,uFog,uBloom;
         uniform int uN; uniform vec3 uRP[${RMAX}]; uniform vec3 uRC[${RMAX}];
         void main(){
-          /* 基本色：近景はやや明るい藍、遠景は黒に近い深藍 */
           float depth=clamp((-vW.z+800.)/3200.,0.,1.);
           vec3 col=mix(vec3(.035,.075,.125),vec3(.008,.022,.05),depth);
-
-          /* 月光の光柱（x位置 = 月の方角、ノイズで揺らめき） */
-          float mx=uMoonX*430.;
-          float lane=exp(-pow((vW.x-mx)/110.,2.));
+          float mx=uMoonX*430.; float lane=exp(-pow((vW.x-mx)/110.,2.));
           float shim=.45+.55*fbm(vec2(vW.x*.02,vW.z*.008-uTime*1.2));
           col+=vec3(.78,.84,1.)*lane*shim*uMoonBr*.95;
-
-          /* 花火の色光：縦長ガウシアンで水面に滲ませる */
-          for(int i=0;i<${RMAX};i++){
-            if(i>=uN) break;
-            vec3 rp=uRP[i];
-            float dx=(vW.x-rp.x)/180.;
-            float dz=(vW.z-rp.z)/480.;
-            float gl=exp(-dx*dx)*exp(-dz*dz);
+          for(int i=0;i<${RMAX};i++){ if(i>=uN) break; vec3 rp=uRP[i];
+            float dx=(vW.x-rp.x)/180.; float dz=(vW.z-rp.z)/520.;
+            float gg=exp(-dx*dx)*exp(-dz*dz);
             float sh=.55+.45*fbm(vec2(vW.x*.04,vW.z*.015+uTime*1.8+float(i)*3.1));
-            col+=uRC[i]*gl*sh*uBloom*.9;
-          }
-
-          /* 波頭のうっすらした白 */
+            col+=uRC[i]*gg*sh*uBloom*.95; }
           col+=vec3(.13,.18,.25)*smoothstep(2.2,5.6,vH)*.45;
-
-          /* 水平線へ溶け込むフォグ */
           float f=pow(clamp(-vW.z/2700.,0.,1.),1.4)*(.55+uFog);
           col=mix(col,vec3(.05,.075,.15),clamp(f,0.,.93));
-          gl_FragColor=vec4(col,1.);
-        }`
+          gl_FragColor=vec4(col,1.);}`
     }));
-    this.mesh.position.set(0,0,-1000);
-    app.scene.add(this.mesh);
+    this.mesh.position.set(0,0,-1000); app.scene.add(this.mesh);
   }
   update(dt,t){
-    const w=WX[P.weather], u=this.u;
-    u.uTime.value=t;
-    u.uStr.value=P.waveStrength*w.wave;
-    u.uSpd.value=P.waveSpeed*(.8+w.wind*.3);
+    const w=WX[P.weather],u=this.u; u.uTime.value=t;
+    u.uStr.value=P.waveStrength*w.wave; u.uSpd.value=P.waveSpeed*(.8+w.wind*.3);
     u.uWind.value=P.windDirection*P.windStrength*4;
-    u.uMoonX.value=this.app.moon.screenX;
-    u.uMoonBr.value=this.app.moon.mu.uBr.value;
-    u.uFog.value=w.fog;
-    u.uBloom.value=P.bloom;
+    u.uMoonX.value=this.app.moon.screenX; u.uMoonBr.value=this.app.moon.mu.uBr.value;
+    u.uFog.value=w.fog; u.uBloom.value=P.bloom;
   }
 }
 
 /* ============================================================================
-   ShorelineSystem — 砂浜 + 寄せ波の白泡（2枚の波シートが交互に進退）
-   返り値：波ヒット強度（夜光虫の発光トリガー）
+   ShorelineSystem
    ============================================================================ */
 class ShorelineSystem{
   constructor(app){
     this.app=app;
-
-    /* 砂浜：グラデ + ノイズ（濡れた反射は After Rain 等で強調） */
     this.sandU={ uTime:{value:0}, uWet:{value:.2}, uMoonBr:{value:1}, uMoonX:{value:0} };
-    const sand=new THREE.Mesh(
-      new THREE.PlaneGeometry(4200,420,2,2).rotateX(-Math.PI/2),
-      new THREE.ShaderMaterial({
-        uniforms:this.sandU,
-        vertexShader:`varying vec3 vW; void main(){
-          vec4 wp=modelMatrix*vec4(position,1.); vW=wp.xyz;
-          gl_Position=projectionMatrix*viewMatrix*wp;}`,
-        fragmentShader:`
-          ${G_NOISE}
-          varying vec3 vW; uniform float uTime,uWet,uMoonBr,uMoonX;
-          void main(){
-            float n=fbm(vW.xz*.06);
-            vec3 dry=vec3(.05,.05,.065)+n*.022;
-            /* 波打ち際に近いほど濡れ色 + 月光のうっすら反射 */
-            float nearSea=smoothstep(160.,30.,vW.z);
-            vec3 wet=dry*.55+vec3(.02,.04,.07);
-            float lane=exp(-pow((vW.x-uMoonX*430.)/150.,2.));
-            wet+=vec3(.5,.6,.8)*lane*uWet*uMoonBr*nearSea*.35;
-            vec3 col=mix(dry,wet,nearSea*clamp(uWet*2.,0.,1.));
-            gl_FragColor=vec4(col,1.);
-          }`
-      })
-    );
-    sand.position.set(0,.1,180);
-    app.scene.add(sand);
+    const sand=new THREE.Mesh(new THREE.PlaneGeometry(4600,460,2,2).rotateX(-Math.PI/2),new THREE.ShaderMaterial({
+      uniforms:this.sandU,
+      vertexShader:`varying vec3 vW; void main(){ vec4 wp=modelMatrix*vec4(position,1.); vW=wp.xyz;
+        gl_Position=projectionMatrix*viewMatrix*wp;}`,
+      fragmentShader:`${G_NOISE}
+        varying vec3 vW; uniform float uTime,uWet,uMoonBr,uMoonX;
+        void main(){ float n=fbm(vW.xz*.06); vec3 dry=vec3(.05,.05,.065)+n*.022;
+          float nearSea=smoothstep(170.,40.,vW.z);
+          vec3 wet=dry*.55+vec3(.02,.04,.07);
+          float lane=exp(-pow((vW.x-uMoonX*430.)/150.,2.));
+          wet+=vec3(.5,.6,.8)*lane*uWet*uMoonBr*nearSea*.35;
+          vec3 col=mix(dry,wet,nearSea*clamp(uWet*2.,0.,1.));
+          gl_FragColor=vec4(col,1.);}`
+    }));
+    sand.position.set(0,.1,210); app.scene.add(sand);
 
-    /* 寄せ波シート×2（位相をずらして交互に） */
     this.sheets=[];
     for(let s=0;s<2;s++){
       const u={ uTime:{value:0}, uPhase:{value:s*Math.PI}, uStr:{value:1}, uProg:{value:0} };
-      const m=new THREE.Mesh(
-        new THREE.PlaneGeometry(4200,200,180,6).rotateX(-Math.PI/2),
-        new THREE.ShaderMaterial({
-          transparent:true, depthWrite:false,
-          uniforms:u,
-          vertexShader:`
-            ${G_NOISE}
-            uniform float uTime,uPhase,uStr,uProg;
-            varying vec2 vUv; varying float vFront;
-            void main(){
-              vUv=uv;
-              vec3 p=position;
-              /* 波先端の曲線：x に沿うノイズで前縁を波打たせる */
-              float curve=fbm(vec2(p.x*.012,uPhase))*38.;
-              /* uProg(0..1) で前進・後退 */
-              p.z+=uProg*64.*uStr - uv.y*10. + curve*uv.y;
-              p.y+=.4+uv.y*.6;
-              vFront=uv.y;
-              gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);
-            }`,
-          fragmentShader:`
-            ${G_NOISE}
-            varying vec2 vUv; varying float vFront;
-            uniform float uTime,uStr,uProg;
-            void main(){
-              /* 前縁ほど白い泡。粒状ノイズ + 引き波で薄れる */
-              float foam=smoothstep(.25,.95,vFront);
-              float n=fbm(vUv*vec2(60.,14.)+uTime*.8);
-              foam*=.35+.65*n;
-              float fade=sin(clamp(uProg,0.,1.)*3.14159);
-              float a=foam*fade*(.55+uStr*.25);
-              gl_FragColor=vec4(vec3(.82,.93,1.),clamp(a,0.,.9));
-            }`
-        })
-      );
-      m.position.set(0,.5,52);
-      app.scene.add(m);
+      const m=new THREE.Mesh(new THREE.PlaneGeometry(4600,210,180,6).rotateX(-Math.PI/2),new THREE.ShaderMaterial({
+        transparent:true, depthWrite:false, uniforms:u,
+        vertexShader:`${G_NOISE}
+          uniform float uTime,uPhase,uStr,uProg; varying vec2 vUv; varying float vFront;
+          void main(){ vUv=uv; vec3 p=position; float curve=fbm(vec2(p.x*.012,uPhase))*38.;
+            p.z+=uProg*64.*uStr - uv.y*10. + curve*uv.y; p.y+=.4+uv.y*.6; vFront=uv.y;
+            gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);} `,
+        fragmentShader:`${G_NOISE}
+          varying vec2 vUv; varying float vFront; uniform float uTime,uStr,uProg;
+          void main(){ float foam=smoothstep(.25,.95,vFront); float n=fbm(vUv*vec2(60.,14.)+uTime*.8);
+            foam*=.35+.65*n; float fade=sin(clamp(uProg,0.,1.)*3.14159);
+            float a=foam*fade*(.55+uStr*.25); gl_FragColor=vec4(vec3(.82,.93,1.),clamp(a,0.,.9));} `
+      }));
+      m.position.set(0,.5,-120); app.scene.add(m);   // ★遠方の水際ラインへ
       this.sheets.push({m,u,t:s*2.6});
     }
     this.period=5.2;
   }
-
   update(dt,t){
-    const w=WX[P.weather];
-    const str=P.waveStrength*w.wave;
-    const spd=(.7+P.waveSpeed*.55)*(0.85+w.wind*.15);
-    this.sandU.uTime.value=t;
-    this.sandU.uMoonBr.value=this.app.moon.mu.uBr.value;
-    this.sandU.uMoonX.value=this.app.moon.screenX;
-    /* 濡れ具合：雨・雨上がりで強める */
+    const w=WX[P.weather], str=P.waveStrength*w.wave, spd=(.7+P.waveSpeed*.55)*(.85+w.wind*.15);
+    this.sandU.uTime.value=t; this.sandU.uMoonBr.value=this.app.moon.mu.uBr.value; this.sandU.uMoonX.value=this.app.moon.screenX;
     const wet=(P.weather==='After Rain')?.8:(P.weather==='Rain'?.6:.25);
     this.sandU.uWet.value=lerp(this.sandU.uWet.value,wet,.03);
-
     let hit=0;
-    for(const s of this.sheets){
-      s.t+=dt*spd;
-      const ph=(s.t%this.period)/this.period;     // 0..1
-      s.u.uTime.value=t; s.u.uStr.value=str;
-      s.u.uProg.value=Math.sin(ph*Math.PI);        // 前進→後退
-      /* 前進ピーク直後を「波が来た瞬間」として夜光虫へ伝える */
-      const pulse=Math.pow(Math.max(0,Math.sin(ph*Math.PI*2-0.4)),8);
-      hit=Math.max(hit,pulse);
-    }
+    for(const s of this.sheets){ s.t+=dt*spd; const ph=(s.t%this.period)/this.period;
+      s.u.uTime.value=t; s.u.uStr.value=str; s.u.uProg.value=Math.sin(ph*Math.PI);
+      hit=Math.max(hit,Math.pow(Math.max(0,Math.sin(ph*Math.PI*2-.4)),8)); }
     return hit*str;
   }
 }
 
 /* ============================================================================
-   NoctilucaSystem — 夜光虫：波打ち際の青緑発光粒子 + 発光トレイル
+   NoctilucaSystem
    ============================================================================ */
 class NoctilucaSystem{
   constructor(app){
-    this.app=app;
-    const N=app.noctN;
-    const pos=new Float32Array(N*3), ph=new Float32Array(N), sd=new Float32Array(N), col=new Float32Array(N*3);
+    this.app=app; const N=app.noctN;
+    const pos=new Float32Array(N*3),ph=new Float32Array(N),sd=new Float32Array(N),col=new Float32Array(N*3);
     for(let i=0;i<N;i++){
-      /* 波打ち際 z=20..120 に密集。中心ほど濃く */
-      pos[i*3]=rand(-1300,1300);
-      pos[i*3+1]=rand(.2,2.4);
-      pos[i*3+2]=20+Math.pow(Math.random(),1.6)*100;
+      pos[i*3]=rand(-2000,2000); pos[i*3+1]=rand(.2,2.0); pos[i*3+2]=-60-Math.pow(Math.random(),1.3)*440; // ★遠方の水面帯へ
       ph[i]=Math.random()*TAU; sd[i]=Math.random();
       const c=pick([[.18,1,.88],[.1,.86,1],[.45,1,.8],[.6,.95,1],[.25,1,.95]]);
       col[i*3]=c[0];col[i*3+1]=c[1];col[i*3+2]=c[2];
@@ -731,608 +557,354 @@ class NoctilucaSystem{
     g.setAttribute('aP',new THREE.BufferAttribute(ph,1));
     g.setAttribute('aS',new THREE.BufferAttribute(sd,1));
     g.setAttribute('aC',new THREE.BufferAttribute(col,3));
-    this.u={ uTime:{value:0}, uHit:{value:0}, uBr:{value:1}, uDen:{value:1},
-             uPix:{value:Math.min(devicePixelRatio||1,2)} };
+    this.u={ uTime:{value:0}, uHit:{value:0}, uBr:{value:1}, uDen:{value:1}, uPix:{value:Math.min(devicePixelRatio||1,2)} };
     this.pts=new THREE.Points(g,new THREE.ShaderMaterial({
-      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
-      uniforms:this.u,
-      vertexShader:`
-        attribute float aP,aS; attribute vec3 aC;
-        uniform float uTime,uHit,uBr,uDen,uPix;
+      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, uniforms:this.u,
+      vertexShader:`attribute float aP,aS; attribute vec3 aC; uniform float uTime,uHit,uBr,uDen,uPix;
         varying float vA; varying vec3 vC;
-        void main(){
-          float vis=step(1.-uDen,aS);
+        void main(){ float vis=step(1.-uDen,aS);
           float blink=.3+.7*pow(.5+.5*sin(uTime*2.6+aP*7.),4.);
-          /* 波ヒット時、位相差をつけて波紋のように光が走る */
           float wave=uHit*(.5+.5*sin(aP+uTime*5.));
-          vA=clamp((blink*.45+wave*1.2)*uBr,0.,1.6)*vis;
-          vC=aC;
-          vec4 mv=modelViewMatrix*vec4(position,1.);
-          gl_Position=projectionMatrix*mv;
-          gl_PointSize=(1.8+wave*7.)*uPix*(300./max(-mv.z,1.));
-        }`,
-      fragmentShader:`
-        varying float vA; varying vec3 vC;
-        void main(){
-          float a=smoothstep(.5,.0,length(gl_PointCoord-.5));
-          gl_FragColor=vec4(vC,a*vA);
-        }`
+          vA=clamp((blink*.45+wave*1.2)*uBr,0.,1.6)*vis; vC=aC;
+          vec4 mv=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv;
+          gl_PointSize=(1.8+wave*7.)*uPix*(300./max(-mv.z,1.)); }`,
+      fragmentShader:`varying float vA; varying vec3 vC;
+        void main(){ float a=smoothstep(.5,.0,length(gl_PointCoord-.5)); gl_FragColor=vec4(vC,a*vA);} `
     }));
     app.scene.add(this.pts);
 
-    /* 発光トレイル：波打ち際に沿う淡い光の帯（足跡風の残光） */
     this.trailU={ uTime:{value:0}, uHit:{value:0}, uBr:{value:1}, uOn:{value:1} };
-    this.trail=new THREE.Mesh(
-      new THREE.PlaneGeometry(2800,110,1,1).rotateX(-Math.PI/2),
-      new THREE.ShaderMaterial({
-        transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
-        uniforms:this.trailU,
-        vertexShader:`varying vec2 vUv; void main(){vUv=uv;
-          gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-        fragmentShader:`
-          ${G_NOISE}
-          varying vec2 vUv; uniform float uTime,uHit,uBr,uOn;
-          void main(){
-            float band=smoothstep(0.,.5,vUv.y)*smoothstep(1.,.5,vUv.y);
-            float n=fbm(vUv*vec2(40.,6.)+vec2(uTime*.3,0.));
-            float a=band*n*(.06+uHit*.3)*uBr*uOn;
-            gl_FragColor=vec4(vec3(.3,1.,.85),a);
-          }`
-      })
-    );
-    this.trail.position.set(0,.6,68);
-    app.scene.add(this.trail);
+    this.trail=new THREE.Mesh(new THREE.PlaneGeometry(3000,120,1,1).rotateX(-Math.PI/2),new THREE.ShaderMaterial({
+      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, uniforms:this.trailU,
+      vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader:`${G_NOISE}
+        varying vec2 vUv; uniform float uTime,uHit,uBr,uOn;
+        void main(){ float band=smoothstep(0.,.5,vUv.y)*smoothstep(1.,.5,vUv.y);
+          float n=fbm(vUv*vec2(40.,6.)+vec2(uTime*.3,0.));
+          gl_FragColor=vec4(vec3(.3,1.,.85), band*n*(.06+uHit*.3)*uBr*uOn);} `
+    }));
+    this.trail.position.set(0,.6,-140); app.scene.add(this.trail);
     this.hitSmooth=0;
   }
   update(dt,t,hit){
-    /* 残光：立ち上がり速く、減衰ゆっくり */
     this.hitSmooth=hit>this.hitSmooth?lerp(this.hitSmooth,hit,.5):lerp(this.hitSmooth,hit,.04);
     const w=WX[P.weather];
-    this.u.uTime.value=t;
-    this.u.uHit.value=clamp(this.hitSmooth,0,1.5);
-    this.u.uBr.value=P.noctBrightness*w.noct;
-    this.u.uDen.value=clamp(P.noctDensity,0,1.2);
-    this.trailU.uTime.value=t;
-    this.trailU.uHit.value=this.hitSmooth;
-    this.trailU.uBr.value=P.noctBrightness*w.noct;
-    this.trailU.uOn.value=P.noctTrail?1:0;
+    this.u.uTime.value=t; this.u.uHit.value=clamp(this.hitSmooth,0,1.5);
+    this.u.uBr.value=P.noctBrightness*w.noct; this.u.uDen.value=clamp(P.noctDensity,0,1.2);
+    this.trailU.uTime.value=t; this.trailU.uHit.value=this.hitSmooth;
+    this.trailU.uBr.value=P.noctBrightness*w.noct; this.trailU.uOn.value=P.noctTrail?1:0;
   }
 }
 
 /* ============================================================================
-   WeatherSystem — 雲（ソフト点群）/ 雨 / 花火の煙
+   WeatherSystem
    ============================================================================ */
 class WeatherSystem{
   constructor(app){
     this.app=app;
-    /* --- 雲 --- */
     const CN=app.isMobile?56:120;
-    {
-      const pos=new Float32Array(CN*3), sd=new Float32Array(CN), sz=new Float32Array(CN);
-      for(let i=0;i<CN;i++){
-        pos[i*3]=rand(-2600,2600); pos[i*3+1]=rand(520,1600); pos[i*3+2]=rand(-2600,-300);
-        sd[i]=Math.random(); sz[i]=rand(320,900);
-      }
+    { const pos=new Float32Array(CN*3),sd=new Float32Array(CN),sz=new Float32Array(CN);
+      for(let i=0;i<CN;i++){ pos[i*3]=rand(-2800,2800); pos[i*3+1]=rand(560,1700); pos[i*3+2]=rand(-2800,-300);
+        sd[i]=Math.random(); sz[i]=rand(340,950); }
       const g=new THREE.BufferGeometry();
       g.setAttribute('position',new THREE.BufferAttribute(pos,3));
       g.setAttribute('aS',new THREE.BufferAttribute(sd,1));
       g.setAttribute('aZ',new THREE.BufferAttribute(sz,1));
-      this.cu={ uT:{value:0}, uCover:{value:.1}, uOp:{value:.25}, uGlow:{value:new THREE.Color(0,0,0)},
-                uPix:{value:Math.min(devicePixelRatio||1,2)} };
+      this.cu={ uT:{value:0}, uCover:{value:.1}, uOp:{value:.25}, uGlow:{value:new THREE.Color(0,0,0)}, uPix:{value:Math.min(devicePixelRatio||1,2)} };
       this.clouds=new THREE.Points(g,new THREE.ShaderMaterial({
-        transparent:true, depthWrite:false,
-        uniforms:this.cu,
-        vertexShader:`
-          attribute float aS,aZ; uniform float uT,uCover,uPix;
-          varying float vA,vS;
-          void main(){
-            vS=aS;
-            vec3 p=position;
-            p.x=mod(p.x+uT*130.*(0.4+aS),5200.)-2600.;
-            vA=step(1.-uCover,aS);
-            vec4 mv=modelViewMatrix*vec4(p,1.);
-            gl_Position=projectionMatrix*mv;
-            gl_PointSize=aZ*uPix*(250./max(-mv.z,1.));
-          }`,
-        fragmentShader:`
-          varying float vA,vS; uniform float uOp; uniform vec3 uGlow;
-          void main(){
-            float a=pow(smoothstep(.5,.04,length(gl_PointCoord-.5)),1.6);
-            /* 雲の地色 + 花火の照り返し */
-            vec3 c=vec3(.4,.46,.6)+uGlow*1.6;
-            gl_FragColor=vec4(c,a*uOp*vA);
-          }`
+        transparent:true, depthWrite:false, uniforms:this.cu,
+        vertexShader:`attribute float aS,aZ; uniform float uT,uCover,uPix; varying float vA;
+          void main(){ vec3 p=position; p.x=mod(p.x+uT*130.*(.4+aS),5600.)-2800.; vA=step(1.-uCover,aS);
+            vec4 mv=modelViewMatrix*vec4(p,1.); gl_Position=projectionMatrix*mv; gl_PointSize=aZ*uPix*(250./max(-mv.z,1.)); }`,
+        fragmentShader:`varying float vA; uniform float uOp; uniform vec3 uGlow;
+          void main(){ float a=pow(smoothstep(.5,.04,length(gl_PointCoord-.5)),1.6);
+            vec3 c=vec3(.4,.46,.6)+uGlow*1.6; gl_FragColor=vec4(c,a*uOp*vA);} `
       }));
-      app.scene.add(this.clouds);
-      this.cloudT=0;
+      app.scene.add(this.clouds); this.cloudT=0;
     }
-
-    /* --- 雨 --- */
-    {
-      const RN=app.isMobile?1100:2800;
-      this.rainN=RN;
+    { const RN=app.isMobile?1100:2800; this.rainN=RN;
       this.rainP=new Float32Array(RN*3); this.rainV=new Float32Array(RN);
-      for(let i=0;i<RN;i++){
-        this.rainP[i*3]=rand(-1600,1600); this.rainP[i*3+1]=rand(0,1200); this.rainP[i*3+2]=rand(-1600,220);
-        this.rainV[i]=rand(750,1250);
-      }
-      const g=new THREE.BufferGeometry();
-      g.setAttribute('position',new THREE.BufferAttribute(this.rainP,3).setUsage(THREE.DynamicDrawUsage));
-      this.rain=new THREE.Points(g,new THREE.PointsMaterial({
-        color:0x9cc2ff,size:2.0,transparent:true,opacity:0,
-        blending:THREE.AdditiveBlending,depthWrite:false}));
+      for(let i=0;i<RN;i++){ this.rainP[i*3]=rand(-1600,1600); this.rainP[i*3+1]=rand(0,1200); this.rainP[i*3+2]=rand(-1600,260); this.rainV[i]=rand(750,1250); }
+      const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(this.rainP,3).setUsage(THREE.DynamicDrawUsage));
+      this.rain=new THREE.Points(g,new THREE.PointsMaterial({color:0x9cc2ff,size:2,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
       app.scene.add(this.rain);
     }
-
-    /* --- 花火の煙：爆発位置に湧き、風で流れて消える（プール式） --- */
-    {
-      const SN=app.isMobile?40:90;
-      this.smokeN=SN;
+    { const SN=app.isMobile?40:90; this.smokeN=SN;
       this.sp=new Float32Array(SN*3); this.sv=new Float32Array(SN*3);
       this.sl=new Float32Array(SN); this.sm=new Float32Array(SN); this.ssz=new Float32Array(SN);
-      this.sActive=new Uint8Array(SN); this.sFree=[];
-      for(let i=SN-1;i>=0;i--) this.sFree.push(i);
-      this.smokeBufP=new Float32Array(SN*3); this.smokeBufA=new Float32Array(SN); this.smokeBufS=new Float32Array(SN);
+      this.sActive=new Uint8Array(SN); this.sFree=[]; for(let i=SN-1;i>=0;i--) this.sFree.push(i);
+      this.bP=new Float32Array(SN*3); this.bA=new Float32Array(SN); this.bS=new Float32Array(SN);
       const g=new THREE.BufferGeometry();
-      g.setAttribute('position',new THREE.BufferAttribute(this.smokeBufP,3).setUsage(THREE.DynamicDrawUsage));
-      g.setAttribute('aA',new THREE.BufferAttribute(this.smokeBufA,1).setUsage(THREE.DynamicDrawUsage));
-      g.setAttribute('aZ',new THREE.BufferAttribute(this.smokeBufS,1).setUsage(THREE.DynamicDrawUsage));
+      g.setAttribute('position',new THREE.BufferAttribute(this.bP,3).setUsage(THREE.DynamicDrawUsage));
+      g.setAttribute('aA',new THREE.BufferAttribute(this.bA,1).setUsage(THREE.DynamicDrawUsage));
+      g.setAttribute('aZ',new THREE.BufferAttribute(this.bS,1).setUsage(THREE.DynamicDrawUsage));
       this.smoke=new THREE.Points(g,new THREE.ShaderMaterial({
-        transparent:true, depthWrite:false,
-        uniforms:{ uPix:{value:Math.min(devicePixelRatio||1,2)} },
-        vertexShader:`
-          attribute float aA,aZ; uniform float uPix;
-          varying float vA;
-          void main(){
-            vA=aA;
-            vec4 mv=modelViewMatrix*vec4(position,1.);
-            gl_Position=projectionMatrix*mv;
-            gl_PointSize=aZ*uPix*(300./max(-mv.z,1.));
-          }`,
-        fragmentShader:`
-          varying float vA;
-          void main(){
-            float a=pow(smoothstep(.5,.05,length(gl_PointCoord-.5)),1.8);
-            gl_FragColor=vec4(vec3(.26,.28,.36),a*vA);
-          }`
+        transparent:true, depthWrite:false, uniforms:{ uPix:{value:Math.min(devicePixelRatio||1,2)} },
+        vertexShader:`attribute float aA,aZ; uniform float uPix; varying float vA;
+          void main(){ vA=aA; vec4 mv=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv; gl_PointSize=aZ*uPix*(300./max(-mv.z,1.)); }`,
+        fragmentShader:`varying float vA; void main(){ float a=pow(smoothstep(.5,.05,length(gl_PointCoord-.5)),1.8); gl_FragColor=vec4(vec3(.26,.28,.36),a*vA);} `
       }));
       app.scene.add(this.smoke);
     }
   }
-
-  /* 爆発位置から煙を発生（FireworksSystem から呼ばれる） */
   puff(x,y,z){
-    if(this.sFree.length===0) return;
-    const i=this.sFree.pop();
-    this.sActive[i]=1;
+    if(this.sFree.length===0) return; const i=this.sFree.pop(); this.sActive[i]=1;
     this.sp[i*3]=x+rand(-8,8); this.sp[i*3+1]=y+rand(-6,6); this.sp[i*3+2]=z+rand(-8,8);
     this.sv[i*3]=rand(-3,3); this.sv[i*3+1]=rand(4,9); this.sv[i*3+2]=rand(-2,2);
-    this.sm[i]=rand(3.5,6); this.sl[i]=this.sm[i];
-    this.ssz[i]=rand(90,170);
+    this.sm[i]=rand(3.5,6); this.sl[i]=this.sm[i]; this.ssz[i]=rand(90,170);
   }
-
   update(dt,t){
     const w=WX[P.weather];
-    /* 雲 */
-    this.cloudT+=dt*w.cspd*(.55+P.windStrength*1.3);
-    this.cu.uT.value=this.cloudT;
-    this.cu.uCover.value=lerp(this.cu.uCover.value,w.cloud,.04);
-    this.cu.uOp.value=lerp(this.cu.uOp.value,.16+w.cloud*.42,.04);
-    /* 花火の照り返しは ReflectionSystem 経由で受け取る */
-    this.cu.uGlow.value.multiplyScalar(.92);   // 自然減衰
-
-    /* 雨 */
+    this.cloudT+=dt*w.cspd*(.55+P.windStrength*1.3); this.cu.uT.value=this.cloudT;
+    this.cu.uCover.value=lerp(this.cu.uCover.value,w.cloud,.04); this.cu.uOp.value=lerp(this.cu.uOp.value,.16+w.cloud*.42,.04);
+    this.cu.uGlow.value.multiplyScalar(.92);
     this.rain.material.opacity=lerp(this.rain.material.opacity,w.rain*.55,.07);
-    if(w.rain>.01){
-      const wind=P.windDirection*P.windStrength*320;
-      for(let i=0;i<this.rainN;i++){
-        this.rainP[i*3+1]-=this.rainV[i]*dt;
-        this.rainP[i*3]+=wind*dt;
-        if(this.rainP[i*3+1]<0){
-          this.rainP[i*3]=rand(-1600,1600);
-          this.rainP[i*3+1]=rand(900,1200);
-          this.rainP[i*3+2]=rand(-1600,220);
-        }
-      }
-      this.rain.geometry.attributes.position.needsUpdate=true;
-    }
-
-    /* 煙：風で横流れ + 上昇 + 拡大しつつフェード */
-    const windX=P.windDirection*(P.windStrength+w.smoke*.4)*26;
-    let d=0;
-    for(let i=0;i<this.smokeN;i++){
-      if(!this.sActive[i]) continue;
-      this.sl[i]-=dt;
+    if(w.rain>.01){ const wind=P.windDirection*P.windStrength*320;
+      for(let i=0;i<this.rainN;i++){ this.rainP[i*3+1]-=this.rainV[i]*dt; this.rainP[i*3]+=wind*dt;
+        if(this.rainP[i*3+1]<0){ this.rainP[i*3]=rand(-1600,1600); this.rainP[i*3+1]=rand(900,1200); this.rainP[i*3+2]=rand(-1600,260);} }
+      this.rain.geometry.attributes.position.needsUpdate=true; }
+    const windX=P.windDirection*(P.windStrength+w.smoke*.4)*26; let d=0;
+    for(let i=0;i<this.smokeN;i++){ if(!this.sActive[i]) continue; this.sl[i]-=dt;
       if(this.sl[i]<=0){ this.sActive[i]=0; this.sFree.push(i); continue; }
-      this.sp[i*3]+=(this.sv[i*3]+windX)*dt;
-      this.sp[i*3+1]+=this.sv[i*3+1]*dt;
-      this.sp[i*3+2]+=this.sv[i*3+2]*dt;
-      const lr=this.sl[i]/this.sm[i];
-      const idx=d*3;
-      this.smokeBufP[idx]=this.sp[i*3]; this.smokeBufP[idx+1]=this.sp[i*3+1]; this.smokeBufP[idx+2]=this.sp[i*3+2];
-      /* 出現直後と消滅前は薄く、中間が最も濃い */
-      this.smokeBufA[d]=Math.sin(lr*Math.PI)*.16*(w.cloud*.5+.5);
-      this.smokeBufS[d]=this.ssz[i]*(1.6-lr*.6);
-      d++;
-    }
+      this.sp[i*3]+=(this.sv[i*3]+windX)*dt; this.sp[i*3+1]+=this.sv[i*3+1]*dt; this.sp[i*3+2]+=this.sv[i*3+2]*dt;
+      const lr=this.sl[i]/this.sm[i]; const ix=d*3;
+      this.bP[ix]=this.sp[i*3]; this.bP[ix+1]=this.sp[i*3+1]; this.bP[ix+2]=this.sp[i*3+2];
+      this.bA[d]=Math.sin(lr*Math.PI)*.16*(w.cloud*.5+.5); this.bS[d]=this.ssz[i]*(1.6-lr*.6); d++; }
     this.smoke.geometry.setDrawRange(0,d);
-    const at=this.smoke.geometry.attributes;
-    at.position.needsUpdate=true; at.aA.needsUpdate=true; at.aZ.needsUpdate=true;
+    const at=this.smoke.geometry.attributes; at.position.needsUpdate=true; at.aA.needsUpdate=true; at.aZ.needsUpdate=true;
   }
 }
 
 /* ============================================================================
-   FireworksSystem — Particle Pool / 16タイプ / 累積1万発
+   FireworksSystem — 火の玉 / 燃える火薬 / 粒サイズ可変 / 累積1万発
    ============================================================================ */
 class FireworksSystem{
   constructor(app){
-    this.app=app;
-    this.GOAL=10000;
-    this.count=0;
-    this.autoT=0;
-
+    this.app=app; this.GOAL=10000; this.count=0; this.autoT=0;
     const M=app.poolN; this.M=M;
-    /* SoA レイアウト：物理・色・寿命をすべて TypedArray に */
     this.px=new Float32Array(M); this.py=new Float32Array(M); this.pz=new Float32Array(M);
     this.vx=new Float32Array(M); this.vy=new Float32Array(M); this.vz=new Float32Array(M);
     this.lf=new Float32Array(M); this.ml=new Float32Array(M);
     this.dg=new Float32Array(M); this.gv=new Float32Array(M);
-    this.tw=new Float32Array(M); this.hs=new Float32Array(M);   // twinkle / 色相シフト速度
+    this.tw=new Float32Array(M); this.em=new Float32Array(M);     // twinkle / ember(冷却)フラグ
     this.cr=new Float32Array(M); this.cg=new Float32Array(M); this.cb=new Float32Array(M);
     this.sz=new Float32Array(M);
-    this.on=new Uint8Array(M);
-    this.free=[]; for(let i=M-1;i>=0;i--)this.free.push(i);
+    this.on=new Uint8Array(M); this.free=[]; for(let i=M-1;i>=0;i--)this.free.push(i);
 
-    this.bp=new Float32Array(M*3); this.bc=new Float32Array(M*3); this.bs=new Float32Array(M);
+    this.bp=new Float32Array(M*3); this.bc=new Float32Array(M*3); this.bb=new Float32Array(M); this.bs=new Float32Array(M);
     const g=new THREE.BufferGeometry();
     g.setAttribute('position',new THREE.BufferAttribute(this.bp,3).setUsage(THREE.DynamicDrawUsage));
     g.setAttribute('aC',new THREE.BufferAttribute(this.bc,3).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('aB',new THREE.BufferAttribute(this.bb,1).setUsage(THREE.DynamicDrawUsage));
     g.setAttribute('aZ',new THREE.BufferAttribute(this.bs,1).setUsage(THREE.DynamicDrawUsage));
-    this.u={ uPix:{value:Math.min(devicePixelRatio||1,2)}, uBloom:{value:1} };
+    this.u={ uPix:{value:Math.min(devicePixelRatio||1,2)}, uBloom:{value:1}, uPSize:{value:1.8} };
     this.pts=new THREE.Points(g,new THREE.ShaderMaterial({
-      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
-      uniforms:this.u,
+      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, uniforms:this.u,
       vertexShader:`
-        attribute vec3 aC; attribute float aZ;
-        uniform float uPix;
-        varying vec3 vC;
-        void main(){
-          vC=aC;
-          vec4 mv=modelViewMatrix*vec4(position,1.);
-          gl_Position=projectionMatrix*mv;
-          gl_PointSize=aZ*uPix*(360./max(-mv.z,1.));
-        }`,
+        attribute vec3 aC; attribute float aB; attribute float aZ;
+        uniform float uPix,uPSize; varying vec3 vC; varying float vB;
+        void main(){ vC=aC; vB=aB;
+          vec4 mv=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv;
+          gl_PointSize=aZ*uPix*uPSize*(360./max(-mv.z,1.)); }`,
       fragmentShader:`
-        varying vec3 vC; uniform float uBloom;
+        varying vec3 vC; varying float vB; uniform float uBloom;
         void main(){
-          float r=length(gl_PointCoord-.5);
-          /* コア + ソフトグローの2層で Bloom 風に */
-          float core=smoothstep(.32,.0,r);
-          float glow=smoothstep(.5,.1,r);
-          float a=core+glow*.7*uBloom;
-          gl_FragColor=vec4(vC*(1.+uBloom*.25),clamp(a,0.,1.));
+          float r=length(gl_PointCoord-.5)*2.0;   // 0:中心 .. 1:外周
+          if(r>1.0) discard;
+          /* 火の玉：中心は白熱、外側は火の色、最外周はグロー */
+          float core=pow(1.0-r,1.8);
+          vec3 hot=mix(vC, vec3(1.0,0.95,0.82), smoothstep(0.5,0.0,r));   // 中心ほど白熱
+          float glow=pow(1.0-r,2.6)*0.5;
+          float a=(core+glow*uBloom)*vB;
+          vec3 col=hot*(1.0+0.45*uBloom*core);
+          gl_FragColor=vec4(col, clamp(a,0.0,1.0));
         }`
     }));
-    this.pts.frustumCulled=false;
-    app.scene.add(this.pts);
-
-    this.shells=[];
-    this._right=new THREE.Vector3(); this._up=new THREE.Vector3(); this._fwd=new THREE.Vector3();
+    this.pts.frustumCulled=false; this.pts.material.depthTest=false; app.fwScene.add(this.pts);
+    this.shells=[]; this._r=new THREE.Vector3(); this._u=new THREE.Vector3(); this._f=new THREE.Vector3();
+    this._tmp=[0,0,0];
   }
-
   qs(){ return this.app.pScale; }
-
-  alloc(x,y,z,vx,vy,vz,life,r,g,b,size,drag,grav,twk,hueShift){
-    if(this.free.length===0) return;
-    const i=this.free.pop();
-    this.on[i]=1;
-    this.px[i]=x;this.py[i]=y;this.pz[i]=z;
-    this.vx[i]=vx;this.vy[i]=vy;this.vz[i]=vz;
-    this.lf[i]=life;this.ml[i]=life;
-    this.cr[i]=r;this.cg[i]=g;this.cb[i]=b;
-    this.sz[i]=size;this.dg[i]=drag;this.gv[i]=grav;
-    this.tw[i]=twk;this.hs[i]=hueShift;
+  alloc(x,y,z,vx,vy,vz,life,r,g,b,size,drag,grav,twk,em){
+    if(this.free.length===0) return; const i=this.free.pop(); this.on[i]=1;
+    this.px[i]=x;this.py[i]=y;this.pz[i]=z; this.vx[i]=vx;this.vy[i]=vy;this.vz[i]=vz;
+    this.lf[i]=life;this.ml[i]=life; this.cr[i]=r;this.cg[i]=g;this.cb[i]=b;
+    this.sz[i]=size;this.dg[i]=drag;this.gv[i]=grav; this.tw[i]=twk;this.em[i]=em;
   }
-
-  /* ---- 打ち上げ ---- */
   launch(type,nx){
     if(this.shells.length>=this.app.shellMax) return;
-    const pr=PRG[P.program];
-    const x=(nx!==undefined)?nx*440:rand(-380,380)*pr.spread;
-    const ty=rand(115,200)*P.fwHeight;
-    const z=rand(-560,-200);
-    this.shells.push({
-      x, y:0, z, vx:rand(-3.5,3.5), vy:Math.sqrt(2*58*ty)*.046, vz:rand(-1.5,1.5),
-      ty, type, fuse:rand(1.35,1.85), age:0, hue:Math.random()
-    });
+    const pr=PRG[P.program]; const x=(nx!==undefined)?nx*440:rand(-380,380)*pr.spread;
+    const ty=rand(120,205)*P.fwHeight; const z=rand(-560,-200);
+    this.shells.push({ x, y:0, z, vx:rand(-3.5,3.5), vy:Math.sqrt(2*58*ty)*.046, vz:rand(-1.5,1.5), ty, type, fuse:rand(1.35,1.85), age:0, hue:Math.random() });
   }
   manual(nx){ this.launch(pick(PRG[P.program].types),nx); }
 
-  /* ---- 爆発：16タイプ ---- */
   explode(s){
-    this.count++;
-    const {x,y,z,hue}=s;
-    const big=P.fwSize*PRG[P.program].big;
-    const sp=44*big;
-    this.app.camera.matrixWorld.extractBasis(this._right,this._up,this._fwd);
-    const R=this._right, U=this._up;
-
-    /* 反射と雲の照り返し、煙を登録 */
-    const c=hsv(hue,.7,1);
-    this.app.reflect.add(x,z,c);
-    this.app.weather.cu.uGlow.value.r=Math.min(this.app.weather.cu.uGlow.value.r+c[0]*.06,.25);
-    this.app.weather.cu.uGlow.value.g=Math.min(this.app.weather.cu.uGlow.value.g+c[1]*.06,.25);
-    this.app.weather.cu.uGlow.value.b=Math.min(this.app.weather.cu.uGlow.value.b+c[2]*.06,.25);
-    const puffs=randi(1,3);
-    for(let k=0;k<puffs;k++) this.app.weather.puff(x,y,z);
+    this.count++; const {x,y,z,hue}=s; const big=P.fwSize*PRG[P.program].big; const sp=44*big;
+    this.app.camera.matrixWorld.extractBasis(this._r,this._u,this._f);
+    const R=this._r,U=this._u;
+    const c=hsv(hue,.7,1); this.app.reflect.add(x,z,c);
+    const gl=this.app.weather.cu.uGlow.value;
+    gl.r=Math.min(gl.r+c[0]*.06,.25); gl.g=Math.min(gl.g+c[1]*.06,.25); gl.b=Math.min(gl.b+c[2]*.06,.25);
+    const pf=randi(1,3); for(let k=0;k<pf;k++) this.app.weather.puff(x,y,z);
 
     switch(s.type){
-      case 'large':   this.sphere(x,y,z,sp*1.55,420,hue,{twk:.45,life:[1.8,2.8]}); break;          // 尺玉風の大輪
-      case 'peony':   this.sphere(x,y,z,sp*1.05,300,hue,{}); break;                                 // 牡丹
-      case 'chrys':   this.sphere(x,y,z,sp*1.05,310,hue,{trail:1,twk:.2,grav:55}); break;           // 菊（尾を引く）
-      case 'willow':  this.willow(x,y,z,sp*.92,240,false); break;                                   // 柳
-      case 'nishiki': this.willow(x,y,z,sp*.98,270,false,!0); break;                                // 錦冠
-      case 'silver':  this.willow(x,y,z,sp*.95,250,true); break;                                    // 銀冠
-      case 'senrin':  this.senrin(x,y,z,sp,hue); break;                                             // 千輪
-      case 'colorful':this.colorful(x,y,z,sp*1.1,330); break;                                       // カラフル連発
-      case 'starmine':this.sphere(x,y,z,sp*.75,130,hue,{life:[1.0,1.6]}); break;                    // スターマイン単発
-      case 'niagara': this.niagara(x,y,z); break;                                                   // ナイアガラ
-      case 'heart':   this.shape2D(x,y,z,R,U,'heart',sp*.92,260,hue); break;
-      case 'smile':   this.shape2D(x,y,z,R,U,'smile',sp*.92,260,hue); break;
-      case 'saturn':  this.saturn(x,y,z,R,U,sp,hue); break;
+      case 'large':    this.sphere(x,y,z,sp*1.55,420,hue,{twk:.3,life:[1.8,2.8],grav:34}); break;
+      case 'peony':    this.sphere(x,y,z,sp*1.05,300,hue,{twk:.25}); break;
+      case 'chrys':    this.sphere(x,y,z,sp*1.05,310,hue,{twk:.25,grav:55}); break;
+      case 'willow':   this.willow(x,y,z,sp*.92,300,false); break;
+      case 'nishiki':  this.willow(x,y,z,sp*.98,330,false,!0); break;
+      case 'silver':   this.willow(x,y,z,sp*.95,300,true); break;
+      case 'senrin':   this.senrin(x,y,z,sp,hue); break;
+      case 'colorful': this.colorful(x,y,z,sp*1.1,330); break;
+      case 'starmine': this.sphere(x,y,z,sp*.75,130,hue,{twk:.4,life:[1.0,1.6]}); break;
+      case 'niagara':  this.niagara(x,y,z); break;
+      case 'heart':    this.shape2D(x,y,z,R,U,'heart',sp*.92,260,hue); break;
+      case 'smile':    this.shape2D(x,y,z,R,U,'smile',sp*.92,260,hue); break;
+      case 'saturn':   this.saturn(x,y,z,R,U,sp,hue); break;
       case 'butterfly':this.shape2D(x,y,z,R,U,'butterfly',sp*.9,300,hue); break;
-      case 'fuji':    this.shape2D(x,y,z,R,U,'fuji',sp*.9,240,hue); break;
-      default:        this.sphere(x,y,z,sp,300,hue,{});
+      case 'fuji':     this.shape2D(x,y,z,R,U,'fuji',sp*.9,240,hue); break;
+      default:         this.sphere(x,y,z,sp,300,hue,{twk:.25});
     }
   }
-
-  /* 球状バースト（牡丹/菊/大輪/スターマイン共通） */
   sphere(x,y,z,sp,n,hue,o){
-    n=(n*this.qs())|0;
-    const life=o.life||[1.4,2.3];
-    for(let i=0;i<n;i++){
-      const u=Math.random()*2-1, th=Math.random()*TAU, s=Math.sqrt(1-u*u);
-      const v=sp*(0.72+Math.random()*0.46);
-      const [r,g,b]=hsv(hue+rand(-.035,.035),.72,1);
-      this.alloc(x,y,z, s*Math.cos(th)*v,u*v,s*Math.sin(th)*v,
-        rand(life[0],life[1]), r,g,b, rand(1.7,3.1), rand(.6,.9), o.grav||32, o.twk||0, o.trail?0:rand(0,.1));
-    }
+    n=(n*this.qs())|0; const life=o.life||[1.4,2.3];
+    for(let i=0;i<n;i++){ const u=Math.random()*2-1,th=Math.random()*TAU,s=Math.sqrt(1-u*u);
+      const v=sp*(.72+Math.random()*.46); const [r,g,b]=hsv(hue+rand(-.035,.035),.72,1);
+      this.alloc(x,y,z,s*Math.cos(th)*v,u*v,s*Math.sin(th)*v, rand(life[0],life[1]), r,g,b, rand(2.4,4.2), rand(.6,.9), o.grav||32, o.twk||0, 0); }
   }
-
-  /* 柳・冠：上方放出 → 重力で金/銀の簾が垂れる */
   willow(x,y,z,sp,n,silver,sparkle){
     n=(n*this.qs())|0;
-    for(let i=0;i<n;i++){
-      const u=Math.random(), th=Math.random()*TAU, s=Math.sqrt(1-u*u);
-      const v=sp*(0.65+Math.random()*0.45);
-      let r,g,b;
-      if(silver){ r=.86;g=.91;b=1; } else { const c=hsv(.105+rand(-.018,.018),.88,1); r=c[0];g=c[1];b=c[2]; }
-      this.alloc(x,y,z, s*Math.cos(th)*v,(u*.85+.15)*v,s*Math.sin(th)*v,
-        rand(2.7,4.0), r,g,b, rand(1.8,3.2), .38, 62, sparkle?.85:(silver?.5:.65), 0);
-    }
+    for(let i=0;i<n;i++){ const u=Math.random(),th=Math.random()*TAU,s=Math.sqrt(1-u*u); const v=sp*(.65+Math.random()*.45);
+      let r,g,b,em; if(silver){ r=.86;g=.91;b=1; em=0; } else { const cc=hsv(.105+rand(-.018,.018),.88,1); r=cc[0];g=cc[1];b=cc[2]; em=1; }
+      this.alloc(x,y,z,s*Math.cos(th)*v,(u*.85+.15)*v,s*Math.sin(th)*v, rand(3.6,5.2), r,g,b, rand(1.5,2.6), .22, 46, sparkle?.85:(silver?.55:.5), em); }
   }
-
-  /* 千輪：小花を多数同時に */
   senrin(x,y,z,sp,hue){
     const k=((7*this.qs())|0)+4;
-    for(let c=0;c<k;c++){
-      this.sphere(x+rand(-34,34),y+rand(-22,22),z+rand(-22,22),
-        sp*.42, 30, (hue+rand(0,.7))%1, {twk:.6,life:[.9,1.5]});
-    }
+    for(let c=0;c<k;c++) this.sphere(x+rand(-34,34),y+rand(-22,22),z+rand(-22,22), sp*.42, 30, (hue+rand(0,.7))%1, {twk:.6,life:[.9,1.5]});
   }
-
-  /* 全色散らし */
   colorful(x,y,z,sp,n){
     n=(n*this.qs())|0;
-    for(let i=0;i<n;i++){
-      const u=Math.random()*2-1, th=Math.random()*TAU, s=Math.sqrt(1-u*u);
-      const v=sp*(.7+Math.random()*.5);
+    for(let i=0;i<n;i++){ const u=Math.random()*2-1,th=Math.random()*TAU,s=Math.sqrt(1-u*u); const v=sp*(.7+Math.random()*.5);
       const [r,g,b]=hsv(Math.random(),.82,1);
-      this.alloc(x,y,z,s*Math.cos(th)*v,u*v,s*Math.sin(th)*v,
-        rand(1.3,2.1), r,g,b, rand(1.7,3.0), .7, 32, .3, .25);
-    }
+      this.alloc(x,y,z,s*Math.cos(th)*v,u*v,s*Math.sin(th)*v, rand(1.3,2.1), r,g,b, rand(2.4,4.0), .7, 32, .3, 0); }
   }
-
-  /* ナイアガラ：横並びの金火が滝のように */
   niagara(x,y,z){
     const n=(170*this.qs())|0, w=560;
-    for(let i=0;i<n;i++){
-      const fx=x+(i/n-.5)*w;
-      const c=hsv(.115+rand(-.02,.02),.75,1);
-      this.alloc(fx,y+rand(-12,12),z, rand(-3,3),rand(-2,2),rand(-3,3),
-        rand(2.8,4.2), c[0],c[1],c[2], rand(1.6,2.6), .45, 68, .45, 0);
-    }
+    for(let i=0;i<n;i++){ const fx=x+(i/n-.5)*w; const cc=hsv(.115+rand(-.02,.02),.75,1);
+      this.alloc(fx,y+rand(-12,12),z, rand(-3,3),rand(-2,2),rand(-3,3), rand(2.8,4.2), cc[0],cc[1],cc[2], rand(2.4,3.6), .45, 68, .35, 1); }
   }
-
-  /* 2D形状（カメラ正対面に展開）：ハート/スマイル/蝶/富士山 */
   shape2D(x,y,z,R,U,shape,sp,n,hue){
     n=(n*this.qs())|0;
-    for(let i=0;i<n;i++){
-      const tt=i/n*TAU; let px,py;
-      if(shape==='heart'){
-        px=Math.pow(Math.sin(tt),3);
-        py=(13*Math.cos(tt)-5*Math.cos(2*tt)-2*Math.cos(3*tt)-Math.cos(4*tt))/16;
-      }else if(shape==='smile'){
+    for(let i=0;i<n;i++){ const tt=i/n*TAU; let px,py;
+      if(shape==='heart'){ px=Math.pow(Math.sin(tt),3); py=(13*Math.cos(tt)-5*Math.cos(2*tt)-2*Math.cos(3*tt)-Math.cos(4*tt))/16; }
+      else if(shape==='smile'){
         if(i<n*.58){ px=Math.cos(tt);py=Math.sin(tt); }
         else if(i<n*.70){ px=-.4+rand(-.06,.06);py=.34+rand(-.06,.06); }
         else if(i<n*.82){ px=.4+rand(-.06,.06);py=.34+rand(-.06,.06); }
-        else { const a=lerp(Math.PI*1.16,Math.PI*1.84,(i-n*.82)/(n*.18));
-               px=Math.cos(a)*.56;py=Math.sin(a)*.56-.04; }
-      }else if(shape==='butterfly'){
-        const rr=Math.exp(Math.cos(tt))-2*Math.cos(4*tt)+Math.pow(Math.sin(tt/12),5);
-        px=Math.sin(tt)*rr*.27; py=Math.cos(tt)*rr*.27;
-      }else{ /* fuji */
-        const uu=i/n; px=(uu-.5)*2;
-        py=-Math.abs(px)*.75+.55+(Math.abs(px)<.16?(.16-Math.abs(px))*1.1:0);
-      }
-      const dx=R.x*px+U.x*py+rand(-.04,.04);
-      const dy=R.y*px+U.y*py+rand(-.04,.04);
-      const dz=R.z*px+U.z*py;
-      const v=sp*(.9+Math.random()*.18);
-      const [r,g,b]=hsv((hue+(shape==='smile'?.12:0))%1, shape==='fuji'?.4:.78, 1);
-      this.alloc(x,y,z,dx*v,dy*v,dz*v, rand(1.6,2.3), r,g,b, rand(1.8,2.8), .88, 20, .2, 0);
-    }
+        else { const a=lerp(Math.PI*1.16,Math.PI*1.84,(i-n*.82)/(n*.18)); px=Math.cos(a)*.56;py=Math.sin(a)*.56-.04; } }
+      else if(shape==='butterfly'){ const rr=Math.exp(Math.cos(tt))-2*Math.cos(4*tt)+Math.pow(Math.sin(tt/12),5); px=Math.sin(tt)*rr*.27; py=Math.cos(tt)*rr*.27; }
+      else { const uu=i/n; px=(uu-.5)*2; py=-Math.abs(px)*.75+.55+(Math.abs(px)<.16?(.16-Math.abs(px))*1.1:0); }
+      const dx=R.x*px+U.x*py+rand(-.04,.04), dy=R.y*px+U.y*py+rand(-.04,.04), dz=R.z*px+U.z*py;
+      const v=sp*(.9+Math.random()*.18); const [r,g,b]=hsv((hue+(shape==='smile'?.12:0))%1, shape==='fuji'?.4:.78, 1);
+      this.alloc(x,y,z,dx*v,dy*v,dz*v, rand(1.6,2.3), r,g,b, rand(2.4,3.6), .88, 20, .2, 0); }
   }
-
-  /* 土星型：中心球 + 傾いた環 */
   saturn(x,y,z,R,U,sp,hue){
-    this.sphere(x,y,z,sp*.68,160,hue,{life:[1.4,2.0]});
-    const n=(130*this.qs())|0, tilt=.42;
-    for(let i=0;i<n;i++){
-      const a=i/n*TAU;
-      const px=Math.cos(a), py=Math.sin(a)*tilt;
-      const v=sp*1.35;
-      const [r,g,b]=hsv((hue+.5)%1,.62,1);
-      this.alloc(x,y,z,(R.x*px+U.x*py)*v,(R.y*px+U.y*py)*v,(R.z*px+U.z*py)*v,
-        rand(1.6,2.2), r,g,b, rand(1.8,2.6), .88, 16, .3, 0);
-    }
+    this.sphere(x,y,z,sp*.68,160,hue,{life:[1.4,2.0],twk:.25}); const n=(130*this.qs())|0, tilt=.42;
+    for(let i=0;i<n;i++){ const a=i/n*TAU; const px=Math.cos(a),py=Math.sin(a)*tilt; const v=sp*1.35; const [r,g,b]=hsv((hue+.5)%1,.62,1);
+      this.alloc(x,y,z,(R.x*px+U.x*py)*v,(R.y*px+U.y*py)*v,(R.z*px+U.z*py)*v, rand(1.6,2.2), r,g,b, rand(2.4,3.4), .88, 16, .3, 0); }
   }
 
   update(dt,t,finale){
-    this.u.uBloom.value=P.bloom;
+    this.u.uBloom.value=P.bloom; this.u.uPSize.value=P.fwParticle;   // ★粒サイズ反映
     this.app.reflect.begin();
-
     const w=WX[P.weather], pr=PRG[P.program];
-
-    /* 自動打ち上げ：フィナーレ中は高密度連発 */
-    this.autoT-=dt;
-    const base=1/(pr.rate*P.fwIntensity);
-    if(this.autoT<=0){
-      const k=finale?randi(3,5):1;
-      for(let i=0;i<k;i++) this.launch(pick(pr.types));
-      this.autoT=(finale?base*.14:base)*rand(.7,1.3);
-    }
-
+    this.autoT-=dt; const base=1/(pr.rate*P.fwIntensity);
+    if(this.autoT<=0){ const k=finale?randi(3,5):1; for(let i=0;i<k;i++) this.launch(pick(pr.types)); this.autoT=(finale?base*.14:base)*rand(.7,1.3); }
     const wind=P.windDirection*(P.windStrength*.85+w.wind*.45)*15;
 
-    /* 玉の上昇 */
-    for(let i=this.shells.length-1;i>=0;i--){
-      const s=this.shells[i];
-      s.age+=dt;
-      s.vy-=58*dt*.046;
+    for(let i=this.shells.length-1;i>=0;i--){ const s=this.shells[i]; s.age+=dt; s.vy-=58*dt*.046;
       s.x+=s.vx*dt*20; s.y+=s.vy*dt*20; s.z+=s.vz*dt*20;
-      /* 上昇トレイル（オレンジの火の粉） */
-      if(Math.random()<.65){
-        const c=hsv(.08,.55,1);
-        this.alloc(s.x,s.y,s.z,rand(-2,2),rand(-3,0),rand(-2,2),
-          rand(.3,.55), c[0],c[1],c[2], 1.5, .6, 26, .3, 0);
-      }
-      if(s.age>=s.fuse||s.vy<=0||s.y>=s.ty){
-        this.explode(s); this.shells.splice(i,1);
-      }
-    }
+      if(Math.random()<.7){ const cc=hsv(.08,.6,1);  // 上昇トレイル＝燃える火の粉
+        this.alloc(s.x,s.y,s.z, rand(-2,2),rand(-3,0),rand(-2,2), rand(.3,.6), cc[0],cc[1],cc[2], rand(2.0,3.2), .6, 26, .4, 1); }
+      if(s.age>=s.fuse||s.vy<=0||s.y>=s.ty){ this.explode(s); this.shells.splice(i,1); } }
 
-    /* パーティクル積分 + バッファ詰め替え */
-    let d=0;
-    const bp=this.bp,bc=this.bc,bs=this.bs;
-    for(let i=0;i<this.M;i++){
-      if(!this.on[i]) continue;
-      let l=this.lf[i]-dt;
-      if(l<=0){ this.on[i]=0; this.free.push(i); continue; }
-      this.lf[i]=l;
+    let d=0; const bp=this.bp,bc=this.bc,bb=this.bb,bs=this.bs, tmp=this._tmp;
+    for(let i=0;i<this.M;i++){ if(!this.on[i]) continue;
+      let l=this.lf[i]-dt; if(l<=0){ this.on[i]=0; this.free.push(i); continue; } this.lf[i]=l;
       const damp=1-this.dg[i]*dt;
-      this.vx[i]=(this.vx[i]+wind*dt)*damp;
-      this.vy[i]=(this.vy[i]-this.gv[i]*dt)*damp;
-      this.vz[i]*=damp;
+      this.vx[i]=(this.vx[i]+wind*dt)*damp; this.vy[i]=(this.vy[i]-this.gv[i]*dt)*damp; this.vz[i]*=damp;
       this.px[i]+=this.vx[i]*dt; this.py[i]+=this.vy[i]*dt; this.pz[i]+=this.vz[i]*dt;
-
       const lr=l/this.ml[i];
-      let br=lr*lr*(3-2*lr);             // smoothstep フェード
-      if(this.tw[i]>0) br*=1-this.tw[i]*.5+this.tw[i]*Math.abs(Math.sin(t*28+i*1.7));
-      /* 色相変化：hs が設定された粒子は時間でわずかに色が回る */
-      let r=this.cr[i],g=this.cg[i],b=this.cb[i];
-      if(this.hs[i]>0){
-        const m=Math.sin((1-lr)*Math.PI*this.hs[i]*8)*.18;
-        r=clamp(r+m,0,1); b=clamp(b-m,0,1);
+      let br=lr*lr*(3-2*lr);                         // smoothstep フェード
+      let r,g,b;
+      if(this.em[i]>0){                              // ★火薬の燃焼：黒体冷却＋パチパチ
+        ember(lr,tmp); r=tmp[0]; g=tmp[1]; b=tmp[2];
+        br*=0.55+0.45*Math.abs(Math.sin(t*38+i*1.7));  // 高周波フリッカー
+      }else{
+        r=this.cr[i]; g=this.cg[i]; b=this.cb[i];
+        if(this.tw[i]>0) br*=1-this.tw[i]*0.5+this.tw[i]*Math.abs(Math.sin(t*26+i)); // 軽い明滅
       }
-      const ix=d*3;
-      bp[ix]=this.px[i];bp[ix+1]=this.py[i];bp[ix+2]=this.pz[i];
-      bc[ix]=r*br;bc[ix+1]=g*br;bc[ix+2]=b*br;
-      bs[d]=this.sz[i]*(.45+lr*.55);
-      d++;
+      const ix=d*3; bp[ix]=this.px[i];bp[ix+1]=this.py[i];bp[ix+2]=this.pz[i];
+      bc[ix]=r; bc[ix+1]=g; bc[ix+2]=b; bb[d]=br; bs[d]=this.sz[i]*(.55+lr*.55); d++;
     }
     this.pts.geometry.setDrawRange(0,d);
     const at=this.pts.geometry.attributes;
-    at.position.updateRange={offset:0,count:d*3};
-    at.aC.updateRange={offset:0,count:d*3};
-    at.aZ.updateRange={offset:0,count:d};
-    at.position.needsUpdate=true; at.aC.needsUpdate=true; at.aZ.needsUpdate=true;
+    at.position.needsUpdate=true; at.aC.needsUpdate=true; at.aB.needsUpdate=true; at.aZ.needsUpdate=true;
   }
 }
 
 /* ============================================================================
-   ReflectionSystem — 花火の発光を海面シェーダへ受け渡し（残光つき）
+   ReflectionSystem
    ============================================================================ */
 class ReflectionSystem{
-  constructor(app){
-    this.app=app;
-    this.slots=[];  // {x,z,c:[r,g,b],life}
-  }
-  begin(){ /* 残光減衰（毎フレーム） */
-    for(let i=this.slots.length-1;i>=0;i--){
-      this.slots[i].life-=0.016;
-      if(this.slots[i].life<=0) this.slots.splice(i,1);
-    }
-  }
-  add(x,z,c){
-    if(this.slots.length>=RMAX) this.slots.shift();  // 古いものから捨てる
-    this.slots.push({x,z,c,life:1.6});
-  }
-  flush(){
-    const u=this.app.ocean.u;
-    const n=Math.min(this.slots.length,RMAX);
-    u.uN.value=n;
-    for(let i=0;i<RMAX;i++){
-      if(i<n){
-        const s=this.slots[i], f=clamp(s.life/1.6,0,1);
-        u.uRP.value[i].set(s.x,0,s.z);
-        u.uRC.value[i].setRGB(s.c[0]*f,s.c[1]*f,s.c[2]*f);
-      } else u.uRC.value[i].setRGB(0,0,0);
-    }
-  }
+  constructor(app){ this.app=app; this.slots=[]; }
+  begin(){ for(let i=this.slots.length-1;i>=0;i--){ this.slots[i].life-=0.016; if(this.slots[i].life<=0) this.slots.splice(i,1);} }
+  add(x,z,c){ if(this.slots.length>=RMAX) this.slots.shift(); this.slots.push({x,z,c,life:1.6}); }
+  flush(){ const u=this.app.ocean.u; const n=Math.min(this.slots.length,RMAX); u.uN.value=n;
+    for(let i=0;i<RMAX;i++){ if(i<n){ const s=this.slots[i],f=clamp(s.life/1.6,0,1);
+      u.uRP.value[i].set(s.x,0,s.z); u.uRC.value[i].setRGB(s.c[0]*f,s.c[1]*f,s.c[2]*f);
+    } else u.uRC.value[i].setRGB(0,0,0); } }
 }
 
 /* ============================================================================
-   HUDSystem — 気象 / プログラム / 発数 / フィナーレ / FPS
+   HUDSystem
    ============================================================================ */
 class HUDSystem{
-  constructor(app){
-    this.app=app;
-    this.e={
-      w:document.getElementById('hWeather'), p:document.getElementById('hProgram'),
-      c:document.getElementById('hCount'), b:document.getElementById('hBar'),
-      f:document.getElementById('hFinale'), fps:document.getElementById('hFps')
-    };
-    this.n=0;
+  constructor(app){ this.app=app;
+    this.e={ w:hWeather, p:hProgram, c:hCount, b:hBar, f:hFinale, fps:hFps }; this.n=0;
   }
-  update(){
-    if(++this.n%6) return;   // 6フレームに1回だけDOM更新
-    const fw=this.app.fw;
-    this.e.w.textContent=P.weather;
-    this.e.p.textContent=P.program;
-    this.e.c.textContent=`${fw.count} / ${fw.GOAL}`;
-    this.e.b.style.width=clamp(fw.count/fw.GOAL*100,0,100)+'%';
+  update(){ if(++this.n%6) return; const fw=this.app.fw;
+    this.e.w.textContent=P.weather; this.e.p.textContent=P.program;
+    this.e.c.textContent=`${fw.count} / ${fw.GOAL}`; this.e.b.style.width=clamp(fw.count/fw.GOAL*100,0,100)+'%';
     if(this.app.finale){ this.e.f.textContent='NOW'; this.e.f.className='v finale-now'; }
-    else { this.e.f.className='v';
-      this.e.f.textContent=P.autoFinale?Math.max(0,this.app.finaleIn).toFixed(0)+'s':'OFF'; }
+    else { this.e.f.className='v'; this.e.f.textContent=P.autoFinale?Math.max(0,this.app.finaleIn).toFixed(0)+'s':'OFF'; }
     this.e.fps.textContent=this.app.fps.toFixed(0);
   }
 }
 
 /* ============================================================================
-   GUIController — dat.GUI 操作パネル
+   GUIController（lil-gui）
    ============================================================================ */
 class GUIController{
   constructor(app){
-    const gui=new dat.GUI({width:300});
-    this.gui=gui;
-
+    const gui=new GUI({title:'NIGHT TIDE'}); this.gui=gui;
     const f1=gui.addFolder('シーン / Scene');
     f1.add(P,'weather',WEATHERS).name('Weather');
-    f1.add(P,'quality',['Auto','High','Mid','Low']).name('Quality')
-      .onChange(()=>location.search.includes('q=')||this.reload());
+    f1.add(P,'quality',['Auto','High','Mid','Low']).name('Quality').onChange(()=>this.reload());
     f1.add(P,'bloom',0,2,.05).name('Bloom Strength');
-    f1.open();
+
+    const f5=gui.addFolder('花火 / Fireworks');
+    f5.add(P,'program',PROGRAMS_LIST).name('Program');
+    f5.add(P,'fwParticle',0.5,5,.05).name('Particle Size');
+    f5.add(P,'trail').name('Streak Trail ★');                 // 線が残る（長秒露光風）
+    f5.add(P,'trailPersist',0.80,0.975,.005).name('Trail Length ★');
+    f5.add(P,'fwIntensity',.1,3,.05).name('Intensity');
+    f5.add(P,'fwSize',.3,2,.05).name('Burst Size');
+    f5.add(P,'fwHeight',.5,1.8,.05).name('Height');
+    f5.add(P,'autoFinale').name('Auto Finale');
+    f5.add({go:()=>app.startFinale()},'go').name('▶ Finale Now');
+    f5.add({rs:()=>{app.fw.count=0;}},'rs').name('Reset Count');
 
     const f2=gui.addFolder('月と星 / Moon & Stars');
     f2.add(P,'moonPhase',['Full','Half','Crescent']).name('Moon Phase');
@@ -1341,47 +913,40 @@ class GUIController{
     f2.add(P,'moonBrightness',0,1.5,.01).name('Moon Brightness');
     f2.add(P,'starDensity',0,1.5,.01).name('Star Density');
 
-    const f3=gui.addFolder('海と波 / Ocean');
+    const f3=gui.addFolder('海と波 / Ocean'); f3.close();
     f3.add(P,'waveStrength',0,2,.01).name('Wave Strength');
     f3.add(P,'waveSpeed',0,2,.01).name('Wave Speed');
 
-    const f4=gui.addFolder('夜光虫 / Noctiluca');
+    const f4=gui.addFolder('夜光虫 / Noctiluca'); f4.close();
     f4.add(P,'noctDensity',0,1.2,.01).name('Density');
     f4.add(P,'noctBrightness',0,2,.01).name('Brightness');
     f4.add(P,'noctTrail').name('Glow Trail');
 
-    const f5=gui.addFolder('花火 / Fireworks');
-    f5.add(P,'program',PROGRAMS_LIST).name('Program');
-    f5.add(P,'fwIntensity',.1,3,.05).name('Intensity');
-    f5.add(P,'fwSize',.3,2,.05).name('Size');
-    f5.add(P,'fwHeight',.5,1.8,.05).name('Height');
-    f5.add(P,'autoFinale').name('Auto Finale');
-    f5.add({go:()=>app.startFinale()},'go').name('▶ Finale Now');
-    f5.add({rs:()=>{app.fw.count=0;}},'rs').name('Reset Count');
-    f5.open();
-
-    const f6=gui.addFolder('風 / Wind');
+    const f6=gui.addFolder('風 / Wind'); f6.close();
     f6.add(P,'windDirection',-1,1,.01).name('Direction');
     f6.add(P,'windStrength',0,2,.01).name('Strength');
 
-    const f7=gui.addFolder('システム / System');
+    const f7=gui.addFolder('システム / System'); f7.close();
     f7.add(P,'paused').name('Pause / Resume');
 
-    if(app.isMobile) gui.close();   // スマホは初期折りたたみ
+    if(app.isMobile) gui.close();
   }
-  reload(){
-    if(confirm('Quality 設定の完全反映にはページの再読み込みが必要です。再読み込みしますか？\n（粒子バッファを再構築するため）')) location.reload();
-  }
+  reload(){ if(confirm('Quality 設定の完全反映にはページの再読み込みが必要です。再読み込みしますか？')) location.reload(); }
 }
 
 /* ---------- 起動 ---------- */
-let app;
 try{
-  app=new App();
+  const c=document.createElement('canvas');
+  if(!(window.WebGLRenderingContext && (c.getContext('webgl')||c.getContext('experimental-webgl')))){
+    clearTimeout(window.__bootTimer);
+    fatal('WEBGL UNAVAILABLE','お使いの環境では WebGL を利用できません。最新の Chrome / Edge / Safari でお試しください。');
+  } else {
+    window.__app=new App();
+    clearTimeout(window.__bootTimer);   // 正常起動：読み込み失敗フォールバックを解除
+  }
 }catch(err){
-  console.error(err);
-  fatal('RUNTIME ERROR',
-    '初期化中にエラーが発生しました。ブラウザのコンソールをご確認ください。<br><br>'+(err&&err.message||''));
+  console.error(err); clearTimeout(window.__bootTimer);
+  fatal('RUNTIME ERROR','初期化中にエラーが発生しました。ブラウザのコンソールをご確認ください。<br><br>'+(err&&err.message||''));
 }
 </script>
 </body>
