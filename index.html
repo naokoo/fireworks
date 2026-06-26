@@ -58,7 +58,7 @@
   <div class="r"><span class="k">FINALE</span><span class="v" id="hFinale">--</span></div>
   <div class="r"><span class="k">FPS</span><span class="v" id="hFps">--</span></div>
 </div>
-<div id="hint">CLICK / TAP — LAUNCH FIREWORK</div>
+<div id="hint">CLICK / TAP — LAUNCH FIREWORK &nbsp;/&nbsp; 🔊 タップで音が出ます</div>
 
 <div id="overlay"><div class="bx"><h1 id="ovT">ERROR</h1><p id="ovM"></p></div></div>
 
@@ -145,6 +145,7 @@ const P={
   trail:true, trailPersist:0.92,   // ★線が残る（長秒露光風）/ 軌跡の長さ
   windDirection:0.15, windStrength:0.4,
   bloom:1.1,
+  sound:true, volume:0.8, whistle:true,   // ★効果音 ON/OFF・音量・打ち上げ笛
   autoFinale:true, paused:false,
   quality:'Auto'
 };
@@ -206,12 +207,14 @@ class App{
     this.weather=new WeatherSystem(this);
     this.reflect=new ReflectionSystem(this);
     this.fw=new FireworksSystem(this);
+    this.sound=new SoundSystem(this);
     this.hud=new HUDSystem(this);
     this.gui=new GUIController(this);
     this.initTrails();
 
     addEventListener('resize',()=>this.onResize());
     this.renderer.domElement.addEventListener('pointerdown',e=>{
+      this.sound.unlock();   // ブラウザの自動再生制限：操作で音声を有効化
       this.fw.manual((e.clientX/innerWidth)*2-1);
     });
 
@@ -737,11 +740,19 @@ class FireworksSystem{
     const pr=PRG[P.program]; const x=(nx!==undefined)?nx*440:rand(-380,380)*pr.spread;
     const ty=rand(120,205)*P.fwHeight; const z=rand(-560,-200);
     this.shells.push({ x, y:0, z, vx:rand(-3.5,3.5), vy:Math.sqrt(2*58*ty)*.046, vz:rand(-1.5,1.5), ty, type, fuse:rand(1.35,1.85), age:0, hue:Math.random() });
+    if(!this.app.finale && Math.random()<0.7) this.app.sound.whistle();   // 打ち上げの「ヒュー」
   }
   manual(nx){ this.launch(pick(PRG[P.program].types),nx); }
 
   explode(s){
     this.count++; const {x,y,z,hue}=s; const big=P.fwSize*PRG[P.program].big; const sp=44*big;
+    /* 爆発音：種類ごとに音色を変える */
+    const cp=this.app.camera.position; const dd=Math.hypot(x-cp.x,y-cp.y,z-cp.z);
+    const SND={ large:{size:1.95}, peony:{size:1.15}, chrys:{size:1.2}, willow:{size:1.35,soft:1},
+      nishiki:{size:1.4,soft:1}, silver:{size:1.3,soft:1}, senrin:{size:0.95,crackle:1}, colorful:{size:1.05},
+      starmine:{size:0.7,crackle:1}, niagara:{size:1.1,soft:1}, heart:{size:1.0}, smile:{size:1.0},
+      saturn:{size:1.15}, butterfly:{size:1.0}, fuji:{size:1.0} }[s.type] || {size:1.0};
+    this.app.sound.boom({ size:SND.size*(0.85+0.3*big/1.4), soft:SND.soft, crackle:SND.crackle, dist:dd });
     this.app.camera.matrixWorld.extractBasis(this._r,this._u,this._f);
     const R=this._r,U=this._u;
     const c=hsv(hue,.7,1); this.app.reflect.add(x,z,c);
@@ -887,6 +898,78 @@ class ReflectionSystem{
 }
 
 /* ============================================================================
+   SoundSystem — Web Audioで花火音を合成（外部ファイル不要）
+   - explosion: 低音サイン・スイープ + ローパスノイズの「ドーン」
+   - 種類で音色変化（大玉=低く長い / スターマイン・千輪=パチパチ / 柳=柔らかい低音）
+   - 距離に応じて僅かに遅延（光ってから音が届く情緒）
+   ============================================================================ */
+class SoundSystem{
+  constructor(app){ this.app=app; this.ctx=null; this.enabled=!!P.sound; this.master=null; this.noise=null; }
+  ensure(){
+    if(this.ctx) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    this.ctx=new AC();
+    this.comp=this.ctx.createDynamicsCompressor();   // 多重再生のクリップ抑制
+    this.master=this.ctx.createGain(); this.master.gain.value=this.enabled?P.volume:0;
+    this.master.connect(this.comp); this.comp.connect(this.ctx.destination);
+    const len=(this.ctx.sampleRate*1.0)|0; const b=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
+    const d=b.getChannelData(0); for(let i=0;i<len;i++) d[i]=Math.random()*2-1; this.noise=b;
+  }
+  unlock(){ this.ensure(); if(this.ctx && this.ctx.state==='suspended') this.ctx.resume(); }   // ユーザー操作で解錠
+  setEnabled(on){ this.enabled=on; this.ensure(); if(!this.ctx) return;
+    if(on && this.ctx.state==='suspended') this.ctx.resume();
+    const g=this.master.gain, t=this.ctx.currentTime;
+    g.cancelScheduledValues(t); g.linearRampToValueAtTime(on?P.volume:0, t+0.12); }
+  applyVolume(){ if(this.ctx && this.enabled){ const t=this.ctx.currentTime;
+    this.master.gain.cancelScheduledValues(t); this.master.gain.linearRampToValueAtTime(P.volume,t+0.05); } }
+
+  boom(o){
+    if(!this.enabled||!this.ctx) return; const ctx=this.ctx, now=ctx.currentTime;
+    const size=clamp(o.size||1,0.5,2.2);
+    const dist=o.dist||300; const t0=now+clamp(dist*0.0009,0,0.45);   // 距離ぶん遅れて届く
+    const vol=clamp(0.55*size,0.12,1.0); const soft=o.soft?1:0;
+    // 低音ボディ（サイン・スイープ）
+    const osc=ctx.createOscillator(); osc.type='sine';
+    const f0=lerp(150,80,clamp((size-0.6)/1.4,0,1))*rand(0.9,1.12);
+    osc.frequency.setValueAtTime(f0,t0);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(f0*0.38,22),t0+0.34*size);
+    const og=ctx.createGain(); og.gain.setValueAtTime(0.0001,t0);
+    og.gain.exponentialRampToValueAtTime(vol,t0+0.008);
+    og.gain.exponentialRampToValueAtTime(0.0008,t0+(0.5+soft*0.3)*size);
+    osc.connect(og); og.connect(this.master); osc.start(t0); osc.stop(t0+(0.65+soft*0.3)*size+0.1);
+    // パンチ＆残響（ノイズ→ローパス）
+    const src=ctx.createBufferSource(); src.buffer=this.noise;
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass';
+    lp.frequency.setValueAtTime(soft?rand(300,600):rand(600,1200),t0);
+    lp.frequency.exponentialRampToValueAtTime(110,t0+0.42*size);
+    const ng=ctx.createGain(); ng.gain.setValueAtTime(0.0001,t0);
+    ng.gain.exponentialRampToValueAtTime(vol*0.8,t0+0.006);
+    ng.gain.exponentialRampToValueAtTime(0.0006,t0+0.5*size);
+    src.connect(lp); lp.connect(ng); ng.connect(this.master); src.start(t0); src.stop(t0+0.7*size);
+    // パチパチ（千輪・スターマイン）
+    if(o.crackle){
+      const n=randi(7,16);
+      for(let k=0;k<n;k++){ const tt=t0+rand(0.04,0.55);
+        const s2=ctx.createBufferSource(); s2.buffer=this.noise;
+        const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=rand(2200,5200);
+        const g2=ctx.createGain(); g2.gain.setValueAtTime(0.0001,tt);
+        g2.gain.exponentialRampToValueAtTime(vol*0.22,tt+0.003);
+        g2.gain.exponentialRampToValueAtTime(0.0005,tt+0.05);
+        s2.connect(hp); hp.connect(g2); g2.connect(this.master); s2.start(tt); s2.stop(tt+0.06); }
+    }
+  }
+  whistle(){
+    if(!this.enabled||!this.ctx||!P.whistle) return; const ctx=this.ctx, now=ctx.currentTime;
+    const osc=ctx.createOscillator(); osc.type='sine';
+    osc.frequency.setValueAtTime(rand(420,680),now);
+    osc.frequency.exponentialRampToValueAtTime(rand(950,1500),now+0.5);
+    const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,now);
+    g.gain.exponentialRampToValueAtTime(0.07,now+0.05);
+    g.gain.exponentialRampToValueAtTime(0.0004,now+0.6);
+    osc.connect(g); g.connect(this.master); osc.start(now); osc.stop(now+0.7);
+  }
+}
+
+/* ============================================================================
    HUDSystem
    ============================================================================ */
 class HUDSystem{
@@ -925,6 +1008,11 @@ class GUIController{
     f5.add(P,'autoFinale').name('Auto Finale');
     f5.add({go:()=>app.startFinale()},'go').name('▶ Finale Now');
     f5.add({rs:()=>{app.fw.count=0;}},'rs').name('Reset Count');
+
+    const fS=gui.addFolder('サウンド / Sound');
+    fS.add(P,'sound').name('Sound On/Off ★').onChange(v=>app.sound.setEnabled(v));
+    fS.add(P,'volume',0,1,.01).name('Volume').onChange(()=>app.sound.applyVolume());
+    fS.add(P,'whistle').name('Launch Whistle');
 
     const f2=gui.addFolder('月と星 / Moon & Stars');
     f2.add(P,'moonPhase',['Full','Half','Crescent']).name('Moon Phase');
