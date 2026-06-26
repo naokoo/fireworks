@@ -141,7 +141,7 @@ const P={
   starDensity:1.0,
   waveStrength:1.0, waveSpeed:1.0,
   noctDensity:1.0, noctBrightness:1.0, noctTrail:true,
-  program:'長岡風', fwIntensity:1.0, fwSize:1.0, fwHeight:1.0, fwParticle:1.3,
+  program:'長岡風', fwIntensity:1.0, fwSize:1.0, fwHeight:1.0, fwParticle:1.3, sparkle:1.0,
   trail:true, trailPersist:0.92,   // ★線が残る（長秒露光風）/ 軌跡の長さ
   windDirection:0.15, windStrength:0.4,
   bloom:1.1,
@@ -686,7 +686,7 @@ class FireworksSystem{
     this.vx=new Float32Array(M); this.vy=new Float32Array(M); this.vz=new Float32Array(M);
     this.lf=new Float32Array(M); this.ml=new Float32Array(M);
     this.dg=new Float32Array(M); this.gv=new Float32Array(M);
-    this.tw=new Float32Array(M); this.em=new Float32Array(M);     // twinkle / ember(冷却)フラグ
+    this.tw=new Float32Array(M); this.em=new Float32Array(M); this.st=new Float32Array(M);  // twinkle / ember / strobe(点滅)
     this.cr=new Float32Array(M); this.cg=new Float32Array(M); this.cb=new Float32Array(M);
     this.sz=new Float32Array(M);
     this.on=new Uint8Array(M); this.free=[]; for(let i=M-1;i>=0;i--)this.free.push(i);
@@ -726,10 +726,11 @@ class FireworksSystem{
   }
   qs(){ return this.app.pScale; }
   alloc(x,y,z,vx,vy,vz,life,r,g,b,size,drag,grav,twk,em){
-    if(this.free.length===0) return; const i=this.free.pop(); this.on[i]=1;
+    if(this.free.length===0) return -1; const i=this.free.pop(); this.on[i]=1;
     this.px[i]=x;this.py[i]=y;this.pz[i]=z; this.vx[i]=vx;this.vy[i]=vy;this.vz[i]=vz;
     this.lf[i]=life;this.ml[i]=life; this.cr[i]=r;this.cg[i]=g;this.cb[i]=b;
-    this.sz[i]=size;this.dg[i]=drag;this.gv[i]=grav; this.tw[i]=twk;this.em[i]=em;
+    this.sz[i]=size;this.dg[i]=drag;this.gv[i]=grav; this.tw[i]=twk;this.em[i]=em; this.st[i]=0;
+    return i;
   }
   launch(type,nx){
     if(this.shells.length>=this.app.shellMax) return;
@@ -749,15 +750,15 @@ class FireworksSystem{
     const pf=randi(1,3); for(let k=0;k<pf;k++) this.app.weather.puff(x,y,z);
 
     switch(s.type){
-      case 'large':    this.sphere(x,y,z,sp*1.55,420,hue,{twk:.3,life:[1.8,2.8],grav:34}); break;
-      case 'peony':    this.sphere(x,y,z,sp*1.05,300,hue,{twk:.25}); break;
-      case 'chrys':    this.sphere(x,y,z,sp*1.05,310,hue,{twk:.25,grav:55}); break;
+      case 'large':    this.sphere(x,y,z,sp*1.55,420,hue,{twk:.3,life:[1.8,2.8],grav:34,strobe:0.16}); break;
+      case 'peony':    this.sphere(x,y,z,sp*1.05,300,hue,{twk:.25,strobe:0.13}); break;
+      case 'chrys':    this.sphere(x,y,z,sp*1.05,310,hue,{twk:.25,grav:55,strobe:0.13}); break;
       case 'willow':   this.willow(x,y,z,sp*.92,300,false); break;
       case 'nishiki':  this.willow(x,y,z,sp*.98,330,false,!0); break;
       case 'silver':   this.willow(x,y,z,sp*.95,300,true); break;
       case 'senrin':   this.senrin(x,y,z,sp,hue); break;
       case 'colorful': this.colorful(x,y,z,sp*1.1,330); break;
-      case 'starmine': this.sphere(x,y,z,sp*.75,130,hue,{twk:.4,life:[1.0,1.6]}); break;
+      case 'starmine': this.sphere(x,y,z,sp*.75,130,hue,{twk:.4,life:[1.0,1.6],strobe:0.22}); break;
       case 'niagara':  this.niagara(x,y,z); break;
       case 'heart':    this.shape2D(x,y,z,R,U,'heart',sp*.92,260,hue); break;
       case 'smile':    this.shape2D(x,y,z,R,U,'smile',sp*.92,260,hue); break;
@@ -772,6 +773,19 @@ class FireworksSystem{
     for(let i=0;i<n;i++){ const u=Math.random()*2-1,th=Math.random()*TAU,s=Math.sqrt(1-u*u);
       const v=sp*(.72+Math.random()*.46); const [r,g,b]=hsv(hue+rand(-.035,.035),.72,1);
       this.alloc(x,y,z,s*Math.cos(th)*v,u*v,s*Math.sin(th)*v, rand(life[0],life[1]), r,g,b, rand(2.4,4.2), rand(.6,.9), o.grav||32, o.twk||0, 0); }
+    const sf=(o.strobe!==undefined)?o.strobe:0.10;       // ★中心付近に点滅星を混ぜる
+    if(sf>0) this.strobes(x,y,z,sp,(n*sf)|0,hue);
+  }
+  /* ストロボ星（キラキラ点滅）：低速で中心付近に留まり、白く鋭く明滅する */
+  strobes(x,y,z,sp,count,hue){
+    count=(count*P.sparkle)|0;
+    for(let i=0;i<count;i++){
+      const u=Math.random()*2-1, th=Math.random()*TAU, s=Math.sqrt(1-u*u);
+      const v=sp*rand(0.06,0.5);                          // 低速＝中央に集まる
+      const idx=this.alloc(x,y,z, s*Math.cos(th)*v, u*v+rand(-2,2), s*Math.sin(th)*v,
+        rand(1.6,2.8), 1,0.97,0.9, rand(2.6,4.0), 0.72, 20, 0, 0);
+      if(idx>=0) this.st[idx]=rand(9,20);                 // 点滅レート（粒ごとにバラす）
+    }
   }
   willow(x,y,z,sp,n,silver,sparkle){
     n=(n*this.qs())|0;
@@ -788,6 +802,7 @@ class FireworksSystem{
     for(let i=0;i<n;i++){ const u=Math.random()*2-1,th=Math.random()*TAU,s=Math.sqrt(1-u*u); const v=sp*(.7+Math.random()*.5);
       const [r,g,b]=hsv(Math.random(),.82,1);
       this.alloc(x,y,z,s*Math.cos(th)*v,u*v,s*Math.sin(th)*v, rand(1.3,2.1), r,g,b, rand(2.4,4.0), .7, 32, .3, 0); }
+    this.strobes(x,y,z,sp,(n*0.10)|0,Math.random());
   }
   niagara(x,y,z){
     const n=(170*this.qs())|0, w=560;
@@ -838,9 +853,13 @@ class FireworksSystem{
       const lr=l/this.ml[i];
       let br=lr*lr*(3-2*lr);                         // smoothstep フェード
       let r,g,b;
-      if(this.em[i]>0){                              // ★火薬の燃焼：黒体冷却＋パチパチ
+      if(this.st[i]>0){                              // ★キラキラ点滅（ストロボ星）：鋭く明滅する白
+        const f=t*this.st[i]+i*0.618; const frac=f-(f|0);
+        br*=(frac<0.16?1:0)*1.9;
+        r=1; g=0.97; b=0.92;
+      }else if(this.em[i]>0){                        // ★火薬の燃焼：黒体冷却＋パチパチ
         ember(lr,tmp); r=tmp[0]; g=tmp[1]; b=tmp[2];
-        br*=0.55+0.45*Math.abs(Math.sin(t*38+i*1.7));  // 高周波フリッカー
+        br*=0.55+0.45*Math.abs(Math.sin(t*38+i*1.7));
       }else{
         r=this.cr[i]; g=this.cg[i]; b=this.cb[i];
         if(this.tw[i]>0) br*=1-this.tw[i]*0.5+this.tw[i]*Math.abs(Math.sin(t*26+i)); // 軽い明滅
@@ -897,6 +916,7 @@ class GUIController{
     const f5=gui.addFolder('花火 / Fireworks');
     f5.add(P,'program',PROGRAMS_LIST).name('Program');
     f5.add(P,'fwParticle',0.5,5,.05).name('Particle Size');
+    f5.add(P,'sparkle',0,3,.05).name('Sparkle ★');            // ★キラキラ点滅の量
     f5.add(P,'trail').name('Streak Trail ★');                 // 線が残る（長秒露光風）
     f5.add(P,'trailPersist',0.80,0.975,.005).name('Trail Length ★');
     f5.add(P,'fwIntensity',.1,3,.05).name('Intensity');
